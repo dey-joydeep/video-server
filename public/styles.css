@@ -1,13 +1,70 @@
-:root { --bg:#0b0d10; --card:#12161c; --muted:#9aa3af; --border:#202632; --fg:#e5e7eb; }
-*{ box-sizing: border-box; }
-html,body{ margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; }
-header{ position:sticky; top:0; padding:12px 16px; border-bottom:1px solid var(--border); background:rgba(11,13,16,.85); backdrop-filter:saturate(180%) blur(10px); z-index:5; }
-h1{ margin:0; font-size:18px; }
-main{ padding:16px; }
-.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
-.card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px; display:flex; flex-direction:column; gap:6px; }
-.thumb{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px; background:#000; }
-.name{ font-size:14px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-.path{ font-size:12px; color:var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-a{ color:inherit; text-decoration:none; }
-a:hover .name{ text-decoration:underline; }
+/* ========== Base ========== */
+:root{
+  --bg:#0b0d10; --panel:#0f1318; --card:#12161c; --text:#e5e7eb;
+  --muted:#9aa3af; --border:#202632; --ring:#334155; --accent:#e2e8f0;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+
+/* ========== Header ========== */
+header.topbar{
+  position:sticky; top:0; z-index:10;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:12px 16px; background:rgba(11,13,16,.88);
+  border-bottom:1px solid var(--border); backdrop-filter:saturate(180%) blur(10px);
+}
+.topbar .brand{font-size:28px;font-weight:800;margin-right:12px}
+.topbar .searchbar{display:flex; align-items:center; gap:10px; flex:1; min-width:260px}
+
+/* Inputs/selects */
+input[type="search"], select{
+  height:36px; padding:0 12px; border-radius:10px;
+  border:1px solid var(--border); background:var(--panel); color:var(--text); outline:none;
+}
+input[type="search"]:focus, select:focus{ border-color:var(--ring); box-shadow:0 0 0 3px rgba(51,65,85,.35) }
+
+/* Buttons */
+.btn, .loadmore>button, .more-actions>button{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:36px; padding:0 14px; font-weight:600;
+  color:var(--text); background:#11161d; border:1px solid var(--border);
+  border-radius:10px; cursor:pointer; user-select:none;
+}
+.btn:hover, .loadmore>button:hover{ background:#131a22; border-color:#2a3140 }
+.btn:active, .loadmore>button:active{ transform:translateY(1px) }
+.btn[hidden]{ display:none !important }
+
+.icon-btn, .iconbtn{ /* accept either class name */
+  width:36px;height:36px;padding:0;border-radius:12px;
+  display:inline-grid;place-items:center;background:#11161d;border:1px solid var(--border);
+}
+.icon-btn svg, .iconbtn svg{ width:18px;height:18px;fill:none;stroke:#cbd5e1;stroke-width:1.8 }
+
+/* Layout */
+.wrap{ padding:16px }
+
+/* Grid & cards */
+.grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)) }
+.grid.list{ grid-template-columns:1fr }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:10px; display:flex; flex-direction:column; gap:8px; cursor:pointer }
+.card .thumb{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px; background:#000 }
+.card .name{ font-weight:700 }
+.card .meta{ font-size:12px; color:var(--muted) }
+.card:hover{ border-color:#2b3340 }
+
+.loadmore{ display:flex; justify-content:center; margin:18px 0 40px }
+
+/* Player page */
+.player-wrap{ padding:16px }
+.player{ width:100%; max-width:900px; margin:0 auto; background:#000; border:1px solid var(--border); border-radius:16px; overflow:hidden }
+.player video{ width:100%; display:block }
+.more-grid{ margin-top:18px }
+
+/* Dialog */
+dialog{ border:none; border-radius:16px; padding:16px; background:var(--panel); color:var(--text); box-shadow:0 10px 30px rgba(0,0,0,.45) }
+dialog::backdrop{ background:rgba(0,0,0,.35) }
+
+@media (max-width: 768px){
+  .topbar .brand{ font-size:22px }
+}

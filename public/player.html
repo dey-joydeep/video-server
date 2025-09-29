@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player</title>
+  <link rel="stylesheet" href="/styles.css?v=7">
+  <script type="module" src="/js/player.js?v=7" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <button id="back" class="btn">← Library</button>
+    <h1 class="brand" style="margin-left:8px">Player</h1>
+  </header>
+  <main class="wrap">
+    <section class="player">
+      <video id="v" playsinline controls controlsList="nodownload" preload="metadata"></video>
+    </section>
+    <section style="margin-top:12px">
+      <h3>More videos</h3>
+      <div id="more" class="grid more-grid"></div>
+      <div class="loadmore"><button id="moreBtn" class="btn">Load more</button></div>
+    </section>
+  </main>
+</body>
+</html>
