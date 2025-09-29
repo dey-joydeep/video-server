@@ -1,50 +1,61 @@
-// public/js/player.js (v7)
-import { getPrefs } from './state.js?v=7';
-import { videoCard } from './components.js?v=7';
+import { getPrefs } from './state.js';
+import { renderCards } from './components.js';
 
-const $ = (s)=>document.querySelector(s);
-const video = $('#v');
-const back = $('#back');
-const more = $('#more');
-const moreBtn = $('#moreBtn');
+const v = document.getElementById('v');
+const moreEl = document.getElementById('moreList');
+const moreBtn = document.getElementById('moreBtn');
 
-function getId(){ const u=new URL(location.href); return u.searchParams.get('id') || u.searchParams.get('f'); }
-
-back.addEventListener('click', ()=>{
-  if (history.length > 1) history.back();
-  else location.href = '/';
-});
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
 
 (async function init(){
-  const id = getId();
-  if (!id){ location.href = '/'; return; }
-  const prefs = getPrefs();
-  video.muted = !!prefs.muted;
-  video.src = `/v/${encodeURIComponent(id)}`;
-  video.addEventListener('keydown', (e)=>{
-    if(e.key==='ArrowUp'){ e.preventDefault(); video.volume = Math.min(1,(video.volume||0)+0.05); }
-    if(e.key==='ArrowDown'){ e.preventDefault(); video.volume = Math.max(0,(video.volume||0)-0.05); }
-  });
+  if(!id){ location.href='/'; return; }
+  v.src = `/v/${encodeURIComponent(id)}`;
+  v.setAttribute('disablepictureinpicture','');
+  v.setAttribute('controlsList','nodownload');
+  v.muted = getPrefs().muted;
 
-  // Load related (14 per page), excluding current id
-  const res = await fetch('/api/list?limit=10000&offset=0');
-  const payload = await res.json();
-  const all = Array.isArray(payload) ? payload : (payload.items || []);
-  const others = all.filter(x=>x.id!==id);
-  let page=0, size=14;
-  function render(){
-    const slice = others.slice(page*size, page*size+size);
-    for(const it of slice){
-      const card = videoCard(it, (item)=>{
-        const url = new URL('/watch', location.origin);
-        url.searchParams.set('id', item.id);
-        location.href = url.toString();
-      });
-      more.appendChild(card);
-    }
-    page++;
-    moreBtn.style.display = (page*size < others.length) ? 'inline-flex' : 'none';
-  }
-  moreBtn.addEventListener('click', render);
-  render();
+  window.addEventListener('keydown', (e)=>{
+    const step = e.shiftKey ? 10 : 5;
+    if(e.key === 'ArrowRight'){ v.currentTime = Math.min((v.currentTime||0)+step, v.duration||1e6); e.preventDefault(); }
+    if(e.key === 'ArrowLeft'){ v.currentTime = Math.max((v.currentTime||0)-step, 0); e.preventDefault(); }
+    if(e.key === 'ArrowUp'){ v.volume = Math.min(1, (v.volume||0)+0.05); e.preventDefault(); }
+    if(e.key === 'ArrowDown'){ v.volume = Math.max(0, (v.volume||0)-0.05); e.preventDefault(); }
+    if(e.key === ' '){ if(v.paused) v.play(); else v.pause(); e.preventDefault(); }
+  }, {passive:false});
+
+  v.addEventListener('mouseup', ()=> v.blur());
+  v.addEventListener('touchend', ()=> v.blur(), {passive:true});
+  v.addEventListener('contextmenu', e=> e.preventDefault());
+
+  await loadMore(true);
 })();
+
+let all=[], idx=0;
+async function loadMore(initial=false){
+  if(initial){
+    const res = await fetch('/api/list');
+    const data = await res.json();
+    all = Array.isArray(data) ? data : (data.items||[]);
+    all = all.filter(x => x.id !== id);
+    idx = 0;
+  }
+  const take = 14;
+  const slice = all.slice(idx, idx+take);
+  idx += slice.length;
+  renderCards(moreEl, slice);
+  installMoreClicks();
+  moreBtn.classList.toggle('hide', idx >= all.length);
+}
+
+function installMoreClicks(){
+  document.querySelectorAll('.card').forEach(card => {
+    const vid = card.dataset.id;
+    card.addEventListener('click', (e)=>{
+      e.preventDefault();
+      location.href = `/watch?id=${encodeURIComponent(vid)}`;
+    }, {passive:false});
+  });
+}
+
+moreBtn.addEventListener('click', ()=> loadMore(false));

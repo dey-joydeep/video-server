@@ -1,26 +1,31 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player</title>
-  <link rel="stylesheet" href="/styles.css?v=7">
-  <script type="module" src="/js/player.js?v=7" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=8">
 </head>
+
 <body>
-  <header class="topbar">
-    <button id="back" class="btn">← Library</button>
-    <h1 class="brand" style="margin-left:8px">Player</h1>
-  </header>
-  <main class="wrap">
-    <section class="player">
-      <video id="v" playsinline controls controlsList="nodownload" preload="metadata"></video>
-    </section>
-    <section style="margin-top:12px">
+  <div class="player-wrap">
+    <div class="player-head">
+      <a href="/" id="back">&larr; Library</a>
+      <strong>Player</strong>
+    </div>
+    <div class="player">
+      <div class="frame">
+        <video id="v" controls playsinline webkit-playsinline controlsList="nodownload noplaybackrate"></video>
+      </div>
+    </div>
+    <section class="more">
       <h3>More videos</h3>
-      <div id="more" class="grid more-grid"></div>
-      <div class="loadmore"><button id="moreBtn" class="btn">Load more</button></div>
+      <div id="moreList" class="grid"></div>
+      <div class="centered"><button type="button" id="moreBtn" class="btn">Load more</button></div>
     </section>
-  </main>
+  </div>
+  <script type="module" src="./js/player.js?v=8"></script>
 </body>
+
 </html>
