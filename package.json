@@ -1,0 +1,16 @@
+{
+  "name": "lan-video-server",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Simple LAN video server with thumbnails and incremental sync",
+  "scripts": {
+    "start": "node server.mjs",
+    "sync": "node tools/sync.mjs",
+    "start:sync": "npm run sync && node server.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "mime": "^4.1.0"
+  }
+}
