@@ -1,61 +1,114 @@
-import { getPrefs } from './state.js';
-import { renderCards } from './components.js';
+const video = document.getElementById('v');
+const moreList = document.getElementById('moreList');
 
-const v = document.getElementById('v');
-const moreEl = document.getElementById('moreList');
-const moreBtn = document.getElementById('moreBtn');
+function getId() {
+    const u = new URL(location.href);
+    return u.searchParams.get('id');
+}
 
-const params = new URLSearchParams(location.search);
-const id = params.get('id');
+function bindKeys() {
+    window.addEventListener('keydown', (e) => {
+        if (
+            ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(
+                document.activeElement?.tagName
+            )
+        )
+            return;
+        if (e.key === ' ') {
+            e.preventDefault();
+            video.paused ? video.play() : video.pause();
+        }
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            video.currentTime = Math.min(
+                video.duration || 1,
+                video.currentTime + 5
+            );
+        }
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            video.currentTime = Math.max(0, video.currentTime - 5);
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            video.volume = Math.min(1, (video.volume || 0) + 0.05);
+        }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            video.volume = Math.max(0, (video.volume || 0) - 0.05);
+        }
+    });
+}
 
-(async function init(){
-  if(!id){ location.href='/'; return; }
-  v.src = `/v/${encodeURIComponent(id)}`;
-  v.setAttribute('disablepictureinpicture','');
-  v.setAttribute('controlsList','nodownload');
-  v.muted = getPrefs().muted;
+async function play(id) {
+    const res = await fetch('/api/session?id=' + encodeURIComponent(id));
+    if (!res.ok) {
+        alert('Failed to start session');
+        return;
+    }
+    const { hlsUrl } = await res.json();
 
-  window.addEventListener('keydown', (e)=>{
-    const step = e.shiftKey ? 10 : 5;
-    if(e.key === 'ArrowRight'){ v.currentTime = Math.min((v.currentTime||0)+step, v.duration||1e6); e.preventDefault(); }
-    if(e.key === 'ArrowLeft'){ v.currentTime = Math.max((v.currentTime||0)-step, 0); e.preventDefault(); }
-    if(e.key === 'ArrowUp'){ v.volume = Math.min(1, (v.volume||0)+0.05); e.preventDefault(); }
-    if(e.key === 'ArrowDown'){ v.volume = Math.max(0, (v.volume||0)-0.05); e.preventDefault(); }
-    if(e.key === ' '){ if(v.paused) v.play(); else v.pause(); e.preventDefault(); }
-  }, {passive:false});
+    video.setAttribute('disablepictureinpicture', '');
+    video.setAttribute('controlslist', 'noplaybackrate nodownload');
 
-  v.addEventListener('mouseup', ()=> v.blur());
-  v.addEventListener('touchend', ()=> v.blur(), {passive:true});
-  v.addEventListener('contextmenu', e=> e.preventDefault());
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = hlsUrl;
+        await video.play().catch(() => {});
+    } else if (window.Hls && window.Hls.isSupported()) {
+        const hls = new Hls({ lowLatencyMode: false });
+        hls.loadSource(hlsUrl);
+        hls.attachMedia(video);
+    } else {
+        alert('Your browser cannot play secure HLS.');
+    }
+}
 
-  await loadMore(true);
-})();
-
-let all=[], idx=0;
-async function loadMore(initial=false){
-  if(initial){
-    const res = await fetch('/api/list');
+async function loadMoreList(excludeId) {
+    const res = await fetch('/api/list?limit=1000&offset=0');
     const data = await res.json();
-    all = Array.isArray(data) ? data : (data.items||[]);
-    all = all.filter(x => x.id !== id);
-    idx = 0;
-  }
-  const take = 14;
-  const slice = all.slice(idx, idx+take);
-  idx += slice.length;
-  renderCards(moreEl, slice);
-  installMoreClicks();
-  moreBtn.classList.toggle('hide', idx >= all.length);
+    const items = (data.items || data)
+        .filter((x) => x.id !== excludeId)
+        .slice(0, 14);
+    moreList.innerHTML = items
+        .map(
+            (it) => `
+    <div class="card" data-id="\${it.id}" data-name="\${it.name}" tabindex="0" role="button" aria-label="Open \${it.name}">
+      <img class="thumb" src="/thumbs/\${it.thumb}" alt="\${it.name}">
+      <div class="title">\${it.name}</div>
+      <div class="meta">\${new Date(it.mtimeMs).toLocaleString()}</div>
+    </div>`
+        )
+        .join('');
+
+    moreList.querySelectorAll('.card').forEach((card) => {
+        const open = () => {
+            const nid = card.dataset.id;
+            history.replaceState(
+                null,
+                '',
+                './player.html?id=' + encodeURIComponent(nid)
+            );
+            play(nid);
+            loadMoreList(nid);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open();
+            }
+        });
+    });
 }
 
-function installMoreClicks(){
-  document.querySelectorAll('.card').forEach(card => {
-    const vid = card.dataset.id;
-    card.addEventListener('click', (e)=>{
-      e.preventDefault();
-      location.href = `/watch?id=${encodeURIComponent(vid)}`;
-    }, {passive:false});
-  });
-}
-
-moreBtn.addEventListener('click', ()=> loadMore(false));
+(async () => {
+    const id = getId();
+    if (!id) {
+        alert('Missing id');
+        return;
+    }
+    bindKeys();
+    await play(id);
+    await loadMoreList(id);
+})();

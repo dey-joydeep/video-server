@@ -5,27 +5,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player</title>
-  <link rel="stylesheet" href="./styles.css?v=8">
+  <link rel="stylesheet" href="./styles.css?v=40">
 </head>
 
 <body>
-  <div class="player-wrap">
-    <div class="player-head">
-      <a href="/" id="back">&larr; Library</a>
-      <strong>Player</strong>
-    </div>
-    <div class="player">
-      <div class="frame">
-        <video id="v" controls playsinline webkit-playsinline controlsList="nodownload noplaybackrate"></video>
-      </div>
-    </div>
-    <section class="more">
+  <header class="app">
+    <div class="left"><a href="./index.html" class="btn">← Library</a></div>
+    <div class="center"></div>
+    <div class="right"></div>
+  </header>
+
+  <main class="wrap">
+    <video id="v" class="frame16x9" playsinline controls preload="metadata" disablepictureinpicture
+      controlslist="noplaybackrate nodownload"></video>
+    <section id="more" style="margin-top:16px">
       <h3>More videos</h3>
       <div id="moreList" class="grid"></div>
-      <div class="centered"><button type="button" id="moreBtn" class="btn">Load more</button></div>
+      <div class="centered">
+        <button id="moreMore" class="btn">Load more</button>
+      </div>
     </section>
-  </div>
-  <script type="module" src="./js/player.js?v=8"></script>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script type="module" src="./js/player.js?v=40"></script>
 </body>
 
 </html>

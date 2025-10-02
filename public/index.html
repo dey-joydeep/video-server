@@ -5,15 +5,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Video Browser</title>
-  <link rel="stylesheet" href="./styles.css?v=8">
+  <link rel="stylesheet" href="./styles.css?v=40">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="brand">Video Browser</div>
+  <header class="app">
+    <div class="left">
+      <h1 class="brand">Video Browser</h1>
+    </div>
     <div class="center">
-      <input id="q" class="search" type="search" placeholder="Search by name…">
-      <select id="sort" class="select">
+      <input id="q" type="search" placeholder="Search videos…">
+      <select id="sort" title="sort">
         <option value="name-asc">Name ↑</option>
         <option value="name-desc">Name ↓</option>
         <option value="date-desc">Date ↓</option>
@@ -21,18 +24,16 @@
       </select>
     </div>
     <div class="right">
-      <button id="toggleView" class="icon-btn" title="Grid/List">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" stroke="currentColor" stroke-width="1.5" />
+      <button id="toggleView" class="iconbtn hidden" title="Grid/List">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 8v-8h8v8h-8z" />
         </svg>
+        <span id="viewLabel">Grid</span>
       </button>
-      <button id="openSettings" class="icon-btn" title="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-          stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
+      <button id="settingsBtn" class="iconbtn" title="Settings">
+        <svg viewBox="0 0 24 24" fill="currentColor">
           <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 3 19.4 1.65 1.65 0 0 0 2.4 18a1.65 1.65 0 0 0-1.82-.33l-.06.06A2 2 0 1 1-2.31 14.9l.06-.06A1.65 1.65 0 0 0 .6 13a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1.82-.33l-.06.06A2 2 0 1 1-2.31 8.9l.06-.06A1.65 1.65 0 0 0 3 4.6 1.65 1.65 0 0 0 3.6 3a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.04-1.71l.06.06A1.65 1.65 0 0 0 8 0.6 1.65 1.65 0 0 0 9 0a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 0 .33-1.82l-.06-.06A2 2 0 1 1 13.1-2.31l.06.06A1.65 1.65 0 0 0 15 0.6 1.65 1.65 0 0 0 15.6 2a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 13.16 6.71l-.06-.06A1.65 1.65 0 0 0 12 7.4">
-          </path>
+            d="M12 8a4 4 0 100 8 4 4 0 000-8zm8.94 3a7.95 7.95 0 00-.34-1l2-1.55-1.5-2.6-2.35.76a8.27 8.27 0 00-1.73-1l-.35-2.44H9.33L9 5.61a8.27 8.27 0 00-1.73 1l-2.35-.76-1.5 2.6 2 1.55a7.95 7.95 0 000 2l-2 1.55 1.5 2.6 2.35-.76c.53.4 1.1.74 1.73 1l.33 2.43h5.64l.33-2.43c.63-.26 1.2-.6 1.73-1l2.35.76 1.5-2.6-2-1.55c.15-.64.27-1.3.27-2z" />
         </svg>
       </button>
     </div>
@@ -45,22 +46,19 @@
     </div>
   </main>
 
-  <div id="settingsModal" class="modal-backdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <h2 id="settingsTitle">Settings</h2>
-      <div class="row">
-        <label><input type="checkbox" id="prefPreview"> Enable preview on hover / touch</label>
-      </div>
-      <div class="row">
-        <label><input type="checkbox" id="prefMuted" checked> Start videos muted (recommended)</label>
-      </div>
-      <div class="row">
-        <button id="closeSettings" class="btn">Close</button>
-      </div>
+  <div id="settingsModal" class="modal" aria-hidden="true">
+    <div class="panel">
+      <h2>Settings</h2>
+      <div class="row"><label><input type="checkbox" id="prefPreview"> Enable hover/touch preview</label></div>
+      <div class="row"><label>Default volume: <input type="range" id="prefVolume" min="0" max="1" step="0.05"
+            value="0"></label></div>
+      <div class="row"><button id="closeSettings" class="btn">Close</button></div>
     </div>
   </div>
 
-  <script type="module" src="./js/main.js?v=8"></script>
+  <footer class="app">Serving from VIDEO_ROOT. Secure HLS optional.</footer>
+
+  <script type="module" src="./js/main.js?v=40"></script>
 </body>
 
 </html>

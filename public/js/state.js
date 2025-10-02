@@ -1,16 +1,20 @@
-export const prefsKey = 'vb:prefs:v2';
-const defaults = { preview: true, muted: true, view: 'grid' };
-export function getPrefs(){
-  try{
-    const raw = localStorage.getItem(prefsKey);
-    if(!raw) return { ...defaults };
-    const obj = JSON.parse(raw);
-    return { ...defaults, ...obj };
-  }catch{ return { ...defaults }; }
+export const state = {
+  isMobile: matchMedia('(max-width: 768px)').matches,
+  view: 'grid',
+  page: 0,
+  pageSize: 21,
+  items: [],
+  q: '',
+  sort: 'name-asc',
+  prefs: { preview: false, volume: 0.0 }
+};
+
+export function loadPrefs(){
+  try {
+    const s = localStorage.getItem('prefs');
+    if (s){ Object.assign(state.prefs, JSON.parse(s)); }
+  } catch {}
 }
-export function setPref(k, v){
-  const p = getPrefs(); p[k] = v;
-  localStorage.setItem(prefsKey, JSON.stringify(p));
-  return p;
+export function savePrefs(){
+  try { localStorage.setItem('prefs', JSON.stringify(state.prefs)); } catch {}
 }
-export const isMobile = () => matchMedia('(max-width: 768px)').matches || matchMedia('(pointer:coarse)').matches;

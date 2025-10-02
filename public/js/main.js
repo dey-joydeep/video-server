@@ -1,134 +1,205 @@
-import { getPrefs, setPref, isMobile } from './state.js';
-import { renderCards } from './components.js';
+import { state, loadPrefs, savePrefs } from './state.js';
+import { cardHtml } from './components.js';
 
+const listEl = document.getElementById('list');
+const loadMoreEl = document.getElementById('loadMore');
 const qEl = document.getElementById('q');
 const sortEl = document.getElementById('sort');
-const listEl = document.getElementById('list');
-const loadBtn = document.getElementById('loadMore');
-const toggleViewBtn = document.getElementById('toggleView');
-const settingsBtn = document.getElementById('openSettings');
-const modal = document.getElementById('settingsModal');
+const toggleViewEl = document.getElementById('toggleView');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
 const prefPreview = document.getElementById('prefPreview');
-const prefMuted = document.getElementById('prefMuted');
-const modalClose = document.getElementById('closeSettings');
+const prefVolume = document.getElementById('prefVolume');
+const closeSettings = document.getElementById('closeSettings');
 
-let allItems = [];
-let items = [];
-let page = 0;
-const PAGE_PC = 21;
-const PAGE_MOBILE = 12;
+loadPrefs();
+prefPreview.checked = state.prefs.preview;
+prefVolume.value = state.prefs.volume;
 
-function currentPageSize(){ return isMobile() ? PAGE_MOBILE : PAGE_PC; }
+if (state.isMobile) {
+    toggleViewEl.classList.remove('hidden');
+    state.pageSize = 12;
+} else {
+    toggleViewEl.classList.add('hidden');
+    state.pageSize = 21;
+}
 
-function applySort(arr, how){
-  const [key,dir] = how.split('-');
-  const mul = (dir==='asc') ? 1 : -1;
-  arr.sort((a,b)=>{
-    if(key==='name') return a.name.localeCompare(b.name) * mul;
-    if(key==='date') return (a.mtimeMs - b.mtimeMs) * mul;
+function fmtSort(a, b, sort) {
+    if (sort === 'name-asc') return a.name.localeCompare(b.name);
+    if (sort === 'name-desc') return b.name.localeCompare(a.name);
+    if (sort === 'date-asc') return a.mtimeMs - b.mtimeMs;
+    if (sort === 'date-desc') return b.mtimeMs - a.mtimeMs;
     return 0;
-  });
 }
 
-function installHeaderLogic(){
-  const updateVis = () => { toggleViewBtn.classList.toggle('hide', !isMobile()); };
-  updateVis(); addEventListener('resize', updateVis);
+let all = { total: 0, items: [] };
 
-  const open = () => (modal.classList.add('modal.show'));
-  const close = () => (modal.classList.remove('modal.show'));
-  settingsBtn.addEventListener('click', open);
-  modalClose.addEventListener('click', close);
-  modal.addEventListener('click', (e)=>{ if(e.target === modal) close(); });
-  addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
-
-  const p = getPrefs();
-  prefPreview.checked = p.preview;
-  prefMuted.checked = p.muted;
-  prefPreview.addEventListener('change', ()=> setPref('preview', prefPreview.checked));
-  prefMuted.addEventListener('change', ()=> setPref('muted', prefMuted.checked));
-
-  qEl.addEventListener('input', ()=> { page=0; filterAndRender(); });
-  sortEl.addEventListener('change', ()=> { page=0; filterAndRender(); });
+async function fetchPage(reset = false) {
+    if (reset) {
+        state.page = 0;
+        listEl.innerHTML = '';
+    }
+    const res = await fetch(
+        `/api/list?limit=1000&offset=0&q=${encodeURIComponent(qEl.value)}`
+    );
+    all = await res.json();
+    const items = (all.items || all).sort((a, b) =>
+        fmtSort(a, b, sortEl.value)
+    );
+    state.items = items;
+    render();
 }
 
-function filterAndRender(){
-  const q = qEl.value.trim().toLowerCase();
-  items = !q ? [...allItems] : allItems.filter(v => v.name.toLowerCase().includes(q));
-  applySort(items, sortEl.value);
-  renderPage(true);
+function render() {
+    const start = state.page * state.pageSize;
+    const slice = state.items.slice(0, start + state.pageSize);
+    listEl.innerHTML = slice.map(cardHtml).join('');
+    loadMoreEl.disabled = slice.length >= state.items.length;
+    bindCards();
 }
 
-function renderPage(reset=false){
-  const LIMIT = currentPageSize();
-  const slice = items.slice(0, (page+1)*LIMIT);
-  renderCards(listEl, slice);
-  installCardInteractions();
-  const hasMore = slice.length < items.length;
-  loadBtn.classList.toggle('hide', !hasMore);
-}
+function bindCards() {
+    listEl.querySelectorAll('.card').forEach((card) => {
+        const id = card.dataset.id;
+        const img = card.querySelector('.thumb');
 
-function installCardInteractions(){
-  const previewEnabled = getPrefs().preview;
-  document.querySelectorAll('.card').forEach(card => {
-    const id = card.dataset.id;
-    const img = card.querySelector('.thumb');
+        if (!state.isMobile) {
+            let hoverTimer = null,
+                hls = null,
+                vid = null;
 
-    const open = () => { location.href = `/watch?id=${encodeURIComponent(id)}`; };
+            const cleanup = () => {
+                if (vid) {
+                    try {
+                        vid.pause();
+                    } catch {}
+                    vid.remove();
+                    vid = null;
+                }
+                if (hls) {
+                    try {
+                        hls.destroy();
+                    } catch {}
+                    hls = null;
+                }
+                if (!img.isConnected) card.insertBefore(img, card.firstChild);
+            };
 
-    if (!isMobile() && previewEnabled){
-      let vid;
-      const enter = async () => {
-        vid = document.createElement('video');
-        vid.muted = true; vid.playsInline = true; vid.autoplay = true; vid.loop = false;
-        vid.src = `/v/${encodeURIComponent(id)}`;
-        vid.style.width='100%'; vid.style.height='100%'; vid.style.objectFit='cover';
-        vid.controls = false; vid.setAttribute('disablepictureinpicture',''); vid.setAttribute('controlsList','nodownload');
-        const box = document.createElement('div'); box.style.position='relative'; box.style.width='100%'; box.style.aspectRatio='16/9';
-        box.appendChild(vid);
-        img.replaceWith(box);
+            const startPreview = async () => {
+                if (!state.prefs.preview) return;
+                if (vid) return;
+                const r = await fetch(
+                    '/api/session?id=' + encodeURIComponent(id)
+                );
+                if (!r.ok) return;
+                const { hlsUrl } = await r.json();
+                vid = document.createElement('video');
+                vid.muted = true;
+                vid.playsInline = true;
+                vid.autoplay = true;
+                vid.controls = false;
+                vid.volume = parseFloat(prefVolume.value || '0');
+                vid.style.width = '100%';
+                vid.style.borderRadius = '10px';
 
-        vid.addEventListener('loadedmetadata', ()=>{
-          const dur = Math.max(vid.duration||0, 0);
-          let segment = Math.min(3, Math.max(1, dur/4));
-          let total = 0;
-          const jump = () => {
-            if(total >= 12 || vid.paused) return;
-            const start = Math.random() * Math.max(0, dur - segment);
-            vid.currentTime = start;
-            total += segment;
-            setTimeout(jump, segment*1000);
-          };
-          if (dur>0) jump();
-        }, {once:true});
-      };
-      const leave = () => {
-        const box = card.querySelector('div[style*="position: relative"]');
-        if(box){
-          const ph = document.createElement('img');
-          ph.className='thumb'; ph.src = img.getAttribute('src'); ph.alt=''; ph.loading='lazy';
-          box.replaceWith(ph);
+                if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+                    vid.src = hlsUrl;
+                } else if (window.Hls && window.Hls.isSupported()) {
+                    const _hls = new Hls();
+                    _hls.loadSource(hlsUrl);
+                    _hls.attachMedia(vid);
+                    hls = _hls;
+                } else {
+                    return;
+                }
+
+                img.replaceWith(vid);
+
+                let stopAt = Date.now() + 12000;
+                const jump = () => {
+                    if (!vid.duration || !isFinite(vid.duration)) return;
+                    let max = Math.max(0, vid.duration - 3);
+                    let t = Math.random() * max;
+                    if (t < 0) t = 0;
+                    vid.currentTime = t;
+                };
+                const loop = () => {
+                    if (Date.now() > stopAt) {
+                        cleanup();
+                        return;
+                    }
+                    setTimeout(jump, 3000);
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            };
+
+            card.addEventListener('mouseenter', () => {
+                hoverTimer = setTimeout(startPreview, 250);
+            });
+            card.addEventListener('mouseleave', () => {
+                clearTimeout(hoverTimer);
+                hoverTimer = null;
+                cleanup();
+            });
         }
-      };
-      card.addEventListener('mouseenter', enter);
-      card.addEventListener('mouseleave', leave);
-      card.addEventListener('blur', leave, true);
-      document.addEventListener('visibilitychange', ()=>{ if(document.hidden) leave(); });
-    }
 
-    card.addEventListener('click', (e)=>{ e.preventDefault(); open(); }, {passive:false});
-    if (isMobile()){
-      card.addEventListener('touchend', (e)=>{ e.preventDefault(); open(); }, {passive:false});
-    }
-  });
+        const open = () => {
+            location.href = `./player.html?id=${encodeURIComponent(id)}`;
+        };
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            open();
+        });
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open();
+            }
+        });
+
+        card.querySelector('.title')?.classList.add('pointer');
+        img?.classList.add('pointer');
+    });
 }
 
-async function loadList(){
-  const res = await fetch('/api/list');
-  const all = await res.json();
-  allItems = Array.isArray(all) ? all : (all.items || []);
-  filterAndRender();
-}
+qEl.addEventListener('input', () => fetchPage(true));
+sortEl.addEventListener('change', () => fetchPage(true));
+document.getElementById('loadMore').addEventListener('click', () => {
+    state.page++;
+    render();
+});
 
-document.getElementById('loadMore').addEventListener('click', ()=>{ page++; renderPage(); });
-installHeaderLogic();
-loadList();
+toggleViewEl.addEventListener('click', () => {
+    if (listEl.classList.contains('grid')) {
+        listEl.classList.remove('grid');
+        listEl.classList.add('list');
+    } else {
+        listEl.classList.remove('list');
+        listEl.classList.add('grid');
+    }
+});
+
+settingsBtn.addEventListener('click', () =>
+    settingsModal.classList.add('show')
+);
+document
+    .getElementById('closeSettings')
+    .addEventListener('click', () => settingsModal.classList.remove('show'));
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.remove('show');
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') settingsModal.classList.remove('show');
+});
+
+prefPreview.addEventListener('change', () => {
+    state.prefs.preview = prefPreview.checked;
+    savePrefs();
+});
+prefVolume.addEventListener('input', () => {
+    state.prefs.volume = parseFloat(prefVolume.value || '0');
+    savePrefs();
+});
+
+fetchPage(true);
