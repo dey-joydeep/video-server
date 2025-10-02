@@ -1,4 +1,6 @@
-// server.mjs — HLS-ready, no wildcards, robust DB mapping
+// server.mjs — robust startup + HLS resolver via live scan (updated)
+// (keeps your routes; integrates HLS exactly once at startup)
+
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -6,7 +8,7 @@ import mime from 'mime';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { spawn } from 'node:child_process';
-import { setupHls } from './lib/hls.mjs'; // <- separate module, as requested
+import { setupHls } from './lib/hls.mjs'; // HLS module
 
 dotenv.config();
 
@@ -29,7 +31,7 @@ const THUMBS_DIR = path.resolve(
 
 const VIDEO_EXTS = new Set(['.mp4', '.mkv', '.webm', '.mov', '.m4v', '.avi']);
 
-// ---------- security/caching ----------
+// ---------- basic hardening ----------
 app.disable('x-powered-by');
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -37,7 +39,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// HTML (no-cache)
+// HTML (no-cache for shell pages)
 app.get('/', (_req, res) =>
     res.sendFile(path.join(PUBLIC_DIR, 'index.html'), {
         headers: { 'Cache-Control': 'no-store' },
@@ -56,7 +58,7 @@ app.use(
     express.static(THUMBS_DIR, { maxAge: '7d', immutable: true })
 );
 
-// ---------- DB helpers ----------
+// ---------- helpers: DB + scan ----------
 function readJsonSafe(p, fallback) {
     try {
         return JSON.parse(fs.readFileSync(p, 'utf8'));
@@ -66,7 +68,7 @@ function readJsonSafe(p, fallback) {
 }
 
 /**
- * We support either of these shapes created by your sync:
+ * Accept either:
  * A) { files: { "<rel>": { hash, thumb, durationMs, ... }, ... } }
  * B) { items: [ { id/hash, rel/path, name, durationMs, thumb, ... }, ... ] }
  */
@@ -78,9 +80,10 @@ function loadIndex() {
     if (raw && raw.files && typeof raw.files === 'object') {
         // Shape A
         for (const [rel, rec] of Object.entries(raw.files)) {
-            byRel[rel] = rec || {};
-            if (rec?.hash) byId[rec.hash] = rel;
-            if (rec?.id && !byId[rec.id]) byId[rec.id] = rel;
+            const r = rec || {};
+            byRel[rel] = r;
+            if (r.hash) byId[r.hash] = rel;
+            if (r.id && !byId[r.id]) byId[r.id] = rel;
         }
     } else if (raw && Array.isArray(raw.items)) {
         // Shape B
@@ -109,15 +112,14 @@ function listAllVideos() {
     const { byRel } = loadIndex();
     const out = [];
 
-    // Walk filesystem so we never miss new files even if DB lags
     const walk = (dir) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) {
+        for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, ent.name);
+            if (ent.isDirectory()) {
                 walk(full);
                 continue;
             }
-            const ext = path.extname(entry.name).toLowerCase();
+            const ext = path.extname(ent.name).toLowerCase();
             if (!VIDEO_EXTS.has(ext)) continue;
 
             const stat = fs.statSync(full);
@@ -125,8 +127,8 @@ function listAllVideos() {
             const rec = byRel[rel] || {};
             out.push({
                 id: rec.hash || null,
-                name: stripExt(entry.name), // no extension exposed
-                rel, // internal use only (not returned to client)
+                name: stripExt(ent.name), // don’t expose extension
+                rel, // internal (never sent to client)
                 mtimeMs: stat.mtimeMs,
                 durationMs: rec.durationMs ?? null,
                 thumb: rec.thumb ?? (rec.hash ? `${rec.hash}.jpg` : null),
@@ -161,39 +163,12 @@ function ffprobeDurationMs(filePath) {
         let out = '';
         p.stdout.on('data', (d) => (out += d.toString()));
         p.on('close', () => {
-            const seconds = parseFloat(out.trim());
-            resolve(isNaN(seconds) ? null : Math.floor(seconds * 1000));
+            const s = parseFloat(out.trim());
+            resolve(Number.isFinite(s) ? Math.floor(s * 1000) : null);
         });
         p.on('error', () => resolve(null));
     });
 }
-
-// Helper: resolve rel by id from the current filesystem scan (no DB schema assumptions)
-function getRelById(id) {
-    if (!id) return null;
-    const arr = listAllVideos(); // already defined earlier in your server
-    const item = arr.find((v) => v.id === id);
-    return item?.rel || null; // rel isn’t exposed to the client; it’s internal
-}
-
-// ---------- HLS “harder to download” wiring (separate module) ----------
-await setupHls(app, {
-    hlsDir: process.env.HLS_DIR || path.join(CWD, '.hls'),
-    segSec: parseInt(process.env.HLS_SEG_SEC || '4', 10),
-    tokenTtlSec: parseInt(process.env.TOKEN_TTL_SEC || '900', 10),
-    pinIp: String(process.env.TOKEN_PIN_IP || 'true') === 'true',
-    ffmpegPath: process.env.FFMPEG || 'ffmpeg',
-    // Map id -> absolute file path inside ROOT using our DB maps
-    resolveFile: async (id) => {
-        const rel = getRelById(id); // find via live scan
-        if (!rel) throw new Error('not found'); // causes 404/500 if bad id
-        const abs = path.resolve(ROOT, rel);
-        if (!abs.startsWith(ROOT)) throw new Error('path escape');
-        if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
-            throw new Error('missing file');
-        return abs;
-    },
-});
 
 // ---------- APIs ----------
 app.get('/api/list', (req, res) => {
@@ -232,21 +207,21 @@ app.get('/api/list', (req, res) => {
     res.json({ total, offset, limit, items: page });
 });
 
-// Range streaming by id (legacy/non-HLS use)
+// Legacy range streaming by id (non-HLS path; kept for fallback)
 app.get('/v/:id', (req, res) => {
     const id = req.params.id;
     const { byId } = loadIndex();
     const rel = byId[id];
     if (!rel) return res.sendStatus(404);
 
-    const resolved = path.resolve(path.join(ROOT, rel));
-    if (!resolved.startsWith(ROOT)) return res.sendStatus(403);
-    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile())
+    const abs = path.resolve(path.join(ROOT, rel));
+    if (!abs.startsWith(ROOT)) return res.sendStatus(403);
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
         return res.sendStatus(404);
 
-    const stat = fs.statSync(resolved);
+    const stat = fs.statSync(abs);
     const fileSize = stat.size;
-    const contentType = mime.getType(resolved) || 'application/octet-stream';
+    const contentType = mime.getType(abs) || 'application/octet-stream';
     const range = req.headers.range;
 
     res.setHeader('Content-Disposition', 'inline');
@@ -259,7 +234,7 @@ app.get('/v/:id', (req, res) => {
             'Content-Length': fileSize,
             'Content-Type': contentType,
         });
-        fs.createReadStream(resolved).pipe(res);
+        fs.createReadStream(abs).pipe(res);
         return;
     }
     const m = /bytes=(\d+)-(\d*)/.exec(range);
@@ -273,13 +248,13 @@ app.get('/v/:id', (req, res) => {
         'Content-Length': end - start + 1,
         'Content-Type': contentType,
     });
-    fs.createReadStream(resolved, { start, end }).pipe(res);
+    fs.createReadStream(abs, { start, end }).pipe(res);
 });
 
-// meta by id OR legacy ?f= relative path (compat for old UI)
+// Meta by id or legacy ?f=rel (compat for older UI)
 app.get('/api/meta', async (req, res) => {
     const id = (req.query.id || '').toString();
-    const f = (req.query.f || '').toString(); // legacy
+    const f = (req.query.f || '').toString(); // legacy param
     const { byId } = loadIndex();
     let rel = null;
 
@@ -288,20 +263,76 @@ app.get('/api/meta', async (req, res) => {
 
     if (!rel) return res.status(400).json({ error: 'missing id' });
 
-    const resolved = path.resolve(path.join(ROOT, rel));
-    if (!resolved.startsWith(ROOT)) return res.sendStatus(403);
-    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile())
+    const abs = path.resolve(path.join(ROOT, rel));
+    if (!abs.startsWith(ROOT)) return res.sendStatus(403);
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
         return res.sendStatus(404);
 
-    const stat = fs.statSync(resolved);
+    const stat = fs.statSync(abs);
     let durationMs = null;
     try {
-        durationMs = await ffprobeDurationMs(resolved);
+        durationMs = await ffprobeDurationMs(abs);
     } catch {}
     res.json({ id: id || null, mtimeMs: stat.mtimeMs, durationMs });
 });
 
-app.listen(PORT, BIND, () => {
-    console.log(`📺 Serving ${ROOT} at http://${BIND}:${PORT}`);
+// Liveness
+app.get('/healthz', (_req, res) => res.type('text').send('ok'));
+
+// ---------- deterministic startup: register HLS, then listen ----------
+async function start() {
+    // Resolve id -> rel using the *current filesystem view*
+    function getRelById(id) {
+        if (!id) return null;
+        const arr = listAllVideos();
+        const it = arr.find((v) => v.id === id);
+        return it?.rel || null;
+    }
+
+    try {
+        await setupHls(app, {
+            hlsDir: process.env.HLS_DIR || path.join(CWD, '.hls'),
+            segSec: parseInt(process.env.HLS_SEG_SEC || '4', 10),
+            tokenTtlSec: parseInt(process.env.TOKEN_TTL_SEC || '900', 10),
+            pinIp: String(process.env.TOKEN_PIN_IP || 'true') === 'true',
+            ffmpegPath: process.env.FFMPEG || 'ffmpeg',
+            // pass through ffprobe (optional) via env if you need a custom path
+            ffprobePath: process.env.FFPROBE_PATH || 'ffprobe',
+            // allow forcing transcode for testing
+            forceTranscode:
+                String(process.env.HLS_FORCE_TRANSCODE || '0') === '1',
+            resolveFile: async (id) => {
+                const rel = getRelById(id);
+                if (!rel) throw new Error('not found');
+                const abs = path.resolve(ROOT, rel);
+                if (!abs.startsWith(ROOT)) throw new Error('path escape');
+                if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
+                    throw new Error('missing file');
+                return abs;
+            },
+        });
+        console.log(
+            '🔐 HLS routes ready: /api/session, /hlskey/:token/key.bin, /hls/:token/:file'
+        );
+    } catch (e) {
+        // Keep the app running even if HLS init fails; legacy /v/:id still works.
+        console.error('HLS init failed:', e?.message || e);
+    }
+
+    app.listen(PORT, BIND, () => {
+        console.log(`📺 Serving ${ROOT} at http://${BIND}:${PORT}`);
+    });
+}
+
+// surface async crashes instead of dying silently
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION:', err);
 });
-// ---------- end of server.mjs ----------
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+start().catch((err) => {
+    console.error('Fatal startup error:', err);
+    process.exit(1);
+});

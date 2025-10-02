@@ -72,10 +72,12 @@ async function loadMoreList(excludeId) {
     moreList.innerHTML = items
         .map(
             (it) => `
-    <div class="card" data-id="\${it.id}" data-name="\${it.name}" tabindex="0" role="button" aria-label="Open \${it.name}">
-      <img class="thumb" src="/thumbs/\${it.thumb}" alt="\${it.name}">
-      <div class="title">\${it.name}</div>
-      <div class="meta">\${new Date(it.mtimeMs).toLocaleString()}</div>
+    <div class="card" data-id="${it.id}" data-name="${
+                it.name
+            }" tabindex="0" role="button" aria-label="Open ${it.name}">
+      <img class="thumb" src="/thumbs/${it.thumb}" alt="${it.name}">
+      <div class="title">${it.name}</div>
+      <div class="meta">${new Date(it.mtimeMs).toLocaleString()}</div>
     </div>`
         )
         .join('');

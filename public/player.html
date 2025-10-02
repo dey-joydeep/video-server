@@ -2,22 +2,40 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Player</title>
-  <link rel="stylesheet" href="./styles.css?v=40">
+
+  <!-- Your existing stylesheet -->
+  <link rel="stylesheet" href="./styles.css?v=41" />
+
+  <!-- HLS for Chromium/Firefox/Edge; Safari uses native HLS -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 </head>
 
 <body>
+  <!-- Header consistent with your app header layout (no placeholders) -->
   <header class="app">
-    <div class="left"><a href="./index.html" class="btn">← Library</a></div>
-    <div class="center"></div>
-    <div class="right"></div>
+    <div class="left">
+      <a class="btn" href="./index.html" aria-label="Back to library">← Library</a>
+    </div>
+    <div class="center">
+      <h1 class="brand">Player</h1>
+    </div>
+    <div class="right">
+      <!-- (keep empty or add buttons you really use) -->
+    </div>
   </header>
 
   <main class="wrap">
-    <video id="v" class="frame16x9" playsinline controls preload="metadata" disablepictureinpicture
-      controlslist="noplaybackrate nodownload"></video>
+    <!-- Player area; 16:9 box is handled via your CSS (e.g., .frame16x9) -->
+    <section class="player">
+      <video id="v" class="frame16x9" playsinline controls preload="metadata" disablepictureinpicture
+        controlsList="noplaybackrate nodownload" oncontextmenu="return false;">
+      </video>
+    </section>
+
+    <!-- More videos section (used by your player.js) -->
     <section id="more" style="margin-top:16px">
       <h3>More videos</h3>
       <div id="moreList" class="grid"></div>
@@ -27,8 +45,9 @@
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script type="module" src="./js/player.js?v=40"></script>
+  <!-- IMPORTANT: your module initializes the session & attaches HLS/native.
+       Nothing here tries to read `hlsUrl` directly. -->
+  <script type="module" src="./js/player.js?v=41"></script>
 </body>
 
 </html>
