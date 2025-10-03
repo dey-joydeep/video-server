@@ -103,7 +103,7 @@ async function play(id) {
     // lock down a few capabilities (best-effort)
     video.setAttribute('disablepictureinpicture', '');
     video.setAttribute('controlslist', 'noplaybackrate nodownload');
-    showLoading('Starting secure session…');
+    showLoading('Preparing the video…');
 
     // start session with abortability
     pendingController = new AbortController();

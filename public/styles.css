@@ -129,7 +129,9 @@ main.wrap {
 .player {
     display: flex;
     justify-content: center;
+    position: relative;
 }
+
 /* Keep a consistent box (16:9) and center it */
 .frame16x9 {
     width: 100%;
@@ -203,6 +205,11 @@ footer.app {
     text-align: center;
     color: #9aa3af;
     padding: 12px 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
 }
 .hidden {
     display: none;
