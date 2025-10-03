@@ -199,7 +199,11 @@ footer.app {
     }
 }
 
-.player {
-    display: flex;
-    align-items: center;
+.loading {
+    text-align: center;
+    color: #9aa3af;
+    padding: 12px 0;
+}
+.hidden {
+    display: none;
 }

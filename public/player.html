@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Player</title>
 
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <!-- Your existing stylesheet -->
   <link rel="stylesheet" href="./styles.css?v=41" />
 
@@ -31,8 +32,9 @@
     <!-- Player area; 16:9 box is handled via your CSS (e.g., .frame16x9) -->
     <section class="player">
       <video id="v" class="frame16x9" playsinline controls preload="metadata" disablepictureinpicture
-        controlsList="noplaybackrate nodownload" oncontextmenu="return false;">
+        controlsList="noplaybackrate nodownload" oncontextmenu="return false;" tabindex="0">
       </video>
+      <div id="loading" class="loading">Preparing video…</div>
     </section>
 
     <!-- More videos section (used by your player.js) -->
