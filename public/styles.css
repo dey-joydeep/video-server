@@ -124,13 +124,23 @@ main.wrap {
 .card:hover {
     outline: 1px solid #263041;
 }
+
+/* Center the player section */
+.player {
+    display: flex;
+    justify-content: center;
+}
+/* Keep a consistent box (16:9) and center it */
 .frame16x9 {
     width: 100%;
-    max-width: 1100px;
-    aspect-ratio: 16/9;
+    max-width: 1100px; /* tune for desktop */
+    aspect-ratio: 16 / 9;
     background: #000;
-    border-radius: 12px;
+    display: block;
+    margin: 0 auto; /* belt-and-suspenders centering */
+    object-fit: contain; /* letterbox instead of stretching */
 }
+
 .modal {
     position: fixed;
     inset: 0;
@@ -187,4 +197,9 @@ footer.app {
     .center {
         justify-content: flex-start;
     }
+}
+
+.player {
+    display: flex;
+    align-items: center;
 }
