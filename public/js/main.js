@@ -63,31 +63,33 @@ function bindCards() {
         const id = card.dataset.id;
         const img = card.querySelector('.thumb');
 
-        if (!state.isMobile) {
-            let hoverTimer = null,
-                hls = null,
+        let previewTimer = null;
+        let hls = null;
+        let vid = null;
+
+        const cleanup = () => {
+            if (vid) {
+                try {
+                    vid.pause();
+                } catch {}
+                vid.remove();
                 vid = null;
+            }
+            if (hls) {
+                try {
+                    hls.destroy();
+                } catch {}
+                hls = null;
+            }
+            if (!img.isConnected) {
+                card.insertBefore(img, card.firstChild);
+            }
+        };
 
-            const cleanup = () => {
-                if (vid) {
-                    try {
-                        vid.pause();
-                    } catch {}
-                    vid.remove();
-                    vid = null;
-                }
-                if (hls) {
-                    try {
-                        hls.destroy();
-                    } catch {}
-                    hls = null;
-                }
-                if (!img.isConnected) card.insertBefore(img, card.firstChild);
-            };
-
-            const startPreview = async () => {
-                if (!state.prefs.preview) return;
-                if (vid) return;
+        const startPreview = async () => {
+            if (!state.prefs.preview) return;
+            if (vid) return;
+            try {
                 const r = await fetch(
                     '/api/session?id=' + encodeURIComponent(id)
                 );
@@ -115,33 +117,46 @@ function bindCards() {
 
                 img.replaceWith(vid);
 
-                let stopAt = Date.now() + 12000;
+                // Add a simple loop to seek to a random position
                 const jump = () => {
-                    if (!vid.duration || !isFinite(vid.duration)) return;
-                    let max = Math.max(0, vid.duration - 3);
-                    let t = Math.random() * max;
-                    if (t < 0) t = 0;
-                    vid.currentTime = t;
-                };
-                const loop = () => {
-                    if (Date.now() > stopAt) {
-                        cleanup();
-                        return;
+                    if (vid && vid.duration && isFinite(vid.duration)) {
+                        let max = Math.max(0, vid.duration - 3);
+                        let t = Math.random() * max;
+                        if (t < 0) t = 0;
+                        vid.currentTime = t;
                     }
-                    setTimeout(jump, 3000);
-                    requestAnimationFrame(loop);
                 };
-                requestAnimationFrame(loop);
-            };
+                const previewInterval = setInterval(jump, 3000);
+                vid.addEventListener('pause', () => clearInterval(previewInterval), { once: true });
 
-            card.addEventListener('mouseenter', () => {
-                hoverTimer = setTimeout(startPreview, 250);
-            });
-            card.addEventListener('mouseleave', () => {
-                clearTimeout(hoverTimer);
-                hoverTimer = null;
+            } catch (e) {
+                console.error("Preview failed", e);
                 cleanup();
+            }
+        };
+
+        const cancelPreview = () => {
+            clearTimeout(previewTimer);
+            previewTimer = null;
+            cleanup();
+        };
+
+        if (!state.isMobile) {
+            // Mouse events for desktop devices
+            card.addEventListener('mouseenter', () => {
+                previewTimer = setTimeout(startPreview, 250);
             });
+            card.addEventListener('mouseleave', cancelPreview);
+        }
+
+        if (state.isTouch) {
+            // Touch events for touch-enabled devices
+            card.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent click event from firing immediately
+                previewTimer = setTimeout(startPreview, 250);
+            });
+            card.addEventListener('touchend', cancelPreview);
+            card.addEventListener('touchcancel', cancelPreview);
         }
 
         const open = () => {

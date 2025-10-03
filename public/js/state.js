@@ -1,5 +1,6 @@
 export const state = {
-  isMobile: matchMedia('(max-width: 768px)').matches,
+  isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+  isTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
   view: 'grid',
   page: 0,
   pageSize: 21,
