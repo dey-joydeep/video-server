@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import mime from 'mime';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
 import { fileURLToPath } from 'url';
 import { spawn } from 'node:child_process';
 import { setupHls } from './lib/hls.mjs'; // HLS module
@@ -13,7 +14,6 @@ import { setupHls } from './lib/hls.mjs'; // HLS module
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -31,12 +31,20 @@ const THUMBS_DIR = path.resolve(
 
 const VIDEO_EXTS = new Set(['.mp4', '.mkv', '.webm', '.mov', '.m4v', '.avi']);
 
+// ---------- logging ----------
+app.use(morgan('dev'));
+
 // ---------- basic hardening ----------
 app.disable('x-powered-by');
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
     next();
+});
+
+app.use((err, req, res, next) => {
+    console.error('EXPRESS ERROR:', err);
+    res.status(500).json({ error: 'server error' });
 });
 
 // HTML (no-cache for shell pages)
@@ -52,6 +60,15 @@ app.get('/watch', (_req, res) =>
 );
 
 // Static assets
+
+// Serve favicon with explicit cache headers
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'favicon.ico'), {
+    headers: { 'Cache-Control': 'public, max-age=86400' }
+  });
+});
+
+
 app.use(express.static(PUBLIC_DIR, { maxAge: '7d', immutable: true }));
 app.use(
     '/thumbs',
