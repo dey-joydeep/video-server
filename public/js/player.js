@@ -257,6 +257,97 @@ async function loadMoreList(excludeId) {
     }
 }
 
+const previewEl = document.querySelector('.progress-bar-preview');
+const previewThumbEl = document.querySelector('.preview-thumb');
+const previewTimeEl = document.querySelector('.preview-time');
+let vttCues = [];
+
+// --- VTT & Sprite Preview Logic ---
+async function initSpritePreview(vttUrl) {
+    try {
+        const res = await fetch(vttUrl);
+        if (!res.ok) return;
+        const text = await res.text();
+        vttCues = parseVtt(text);
+        if (vttCues.length > 0) {
+            video.addEventListener('mousemove', onProgressMouseMove);
+            video.addEventListener('mouseleave', onProgressMouseLeave);
+        }
+    } catch (e) {
+        console.warn('Failed to load sprite preview', e);
+    }
+}
+
+function parseVtt(text) {
+    const lines = text.trim().split(/\r?\n/);
+    const cues = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (lines[i].includes('-->')) {
+            const [start, end] = lines[i].split(' --> ').map(timeToSeconds);
+            const urlLine = lines[++i];
+            const match = urlLine.match(/(.+?)#xywh=(\d+),(\d+),(\d+),(\d+)/);
+            if (match) {
+                cues.push({
+                    start,
+                    end,
+                    url: `/thumbs/${match[1]`,
+                    x: parseInt(match[2], 10),
+                    y: parseInt(match[3], 10),
+                    w: parseInt(match[4], 10),
+                    h: parseInt(match[5], 10),
+                });
+            }
+        }
+    }
+    return cues;
+}
+
+function timeToSeconds(timeStr) {
+    const parts = timeStr.split(':');
+    const seconds = parts.pop();
+    return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(seconds);
+}
+
+function secondsToTime(time) {
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function onProgressMouseMove(e) {
+    if (!video.duration || vttCues.length === 0) return;
+
+    const rect = video.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    const hoverTime = video.duration * percent;
+
+    const cue = vttCues.find(c => hoverTime >= c.start && hoverTime < c.end);
+    if (!cue) {
+        previewEl.classList.remove('visible');
+        return;
+    }
+
+    previewThumbEl.style.backgroundImage = `url(${cue.url})`;
+    previewThumbEl.style.backgroundPosition = `-${cue.x}px -${cue.y}px`;
+    previewThumbEl.style.width = `${cue.w}px`;
+    previewThumbEl.style.height = `${cue.h}px`;
+    previewTimeEl.textContent = secondsToTime(hoverTime);
+
+    // Position the preview box
+    const previewWidth = previewEl.offsetWidth;
+    let previewLeft = e.clientX - rect.left - (previewWidth / 2);
+    // Clamp to video bounds
+    previewLeft = Math.max(0, Math.min(previewLeft, rect.width - previewWidth));
+
+    previewEl.style.left = `${previewLeft}px`;
+    previewEl.classList.add('visible');
+}
+
+function onProgressMouseLeave() {
+    previewEl.classList.remove('visible');
+}
+
+
 // --- bootstrap ---
 (async () => {
     const id = getId();
@@ -266,6 +357,17 @@ async function loadMoreList(excludeId) {
     }
 
     bindKeys();
+
+    // Fetch metadata to check for sprites
+    try {
+        const metaRes = await fetch(`/api/meta?id=${id}`);
+        const meta = await metaRes.json();
+        if (meta.sprite) {
+            initSpritePreview(meta.sprite);
+        }
+    } catch (e) {
+        console.warn('Could not fetch video metadata', e);
+    }
 
     // Start “More videos” early to improve perceived responsiveness:
     // don’t await it — let it render as soon as it returns.

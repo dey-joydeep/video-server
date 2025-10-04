@@ -10,6 +10,7 @@ import morgan from 'morgan';
 import { fileURLToPath } from 'url';
 import { spawn } from 'node:child_process';
 import { setupHls } from './lib/hls.mjs'; // HLS module
+import logger from './lib/logger.mjs';
 
 dotenv.config();
 
@@ -32,7 +33,7 @@ const THUMBS_DIR = path.resolve(
 const VIDEO_EXTS = new Set(['.mp4', '.mkv', '.webm', '.mov', '.m4v', '.avi']);
 
 // ---------- logging ----------
-app.use(morgan('dev'));
+app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 
 // ---------- basic hardening ----------
 app.disable('x-powered-by');
@@ -43,7 +44,7 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error('EXPRESS ERROR:', err);
+    logger.error('EXPRESS ERROR:', err);
     res.status(500).json({ error: 'server error' });
 });
 
@@ -214,13 +215,16 @@ app.get('/api/list', (req, res) => {
     const total = items.length;
     const page = items
         .slice(offset, offset + limit)
-        .map(({ id, name, mtimeMs, durationMs, thumb }) => ({
-            id,
-            name,
-            mtimeMs,
-            durationMs,
-            thumb,
-        }));
+        .map(({ id, name, mtimeMs, durationMs, thumb }) => {
+            const item = { id, name, mtimeMs, durationMs, thumb };
+            if (id) {
+                const clipPath = path.join(THUMBS_DIR, `${id}_preview.mp4`);
+                if (fs.existsSync(clipPath)) {
+                    item.previewClip = `/thumbs/${id}_preview.mp4`;
+                }
+            }
+            return item;
+        });
     res.json({ total, offset, limit, items: page });
 });
 
@@ -272,11 +276,19 @@ app.get('/v/:id', (req, res) => {
 app.get('/api/meta', async (req, res) => {
     const id = (req.query.id || '').toString();
     const f = (req.query.f || '').toString(); // legacy param
-    const { byId } = loadIndex();
+    const { byId, byRel } = loadIndex();
     let rel = null;
+    let hash = null;
 
-    if (id) rel = byId[id];
-    if (!rel && f && f !== 'undefined') rel = f; // tolerate old clients
+    if (id) {
+        rel = byId[id];
+        hash = id;
+    }
+    if (!rel && f && f !== 'undefined') {
+        rel = f; // tolerate old clients
+        const rec = byRel[f] || {};
+        hash = rec.hash || null;
+    }
 
     if (!rel) return res.status(400).json({ error: 'missing id' });
 
@@ -290,7 +302,17 @@ app.get('/api/meta', async (req, res) => {
     try {
         durationMs = await ffprobeDurationMs(abs);
     } catch {}
-    res.json({ id: id || null, mtimeMs: stat.mtimeMs, durationMs });
+
+    const response = { id: hash, mtimeMs: stat.mtimeMs, durationMs };
+
+    if (hash) {
+        const vttPath = path.join(THUMBS_DIR, `${hash}_sprite.vtt`);
+        if (fs.existsSync(vttPath)) {
+            response.sprite = `/thumbs/${hash}_sprite.vtt`;
+        }
+    }
+
+    res.json(response);
 });
 
 // Liveness
@@ -328,28 +350,28 @@ async function start() {
                 return abs;
             },
         });
-        console.log(
+        logger.info(
             '🔐 HLS routes ready: /api/session, /hlskey/:token/key.bin, /hls/:token/:file'
         );
     } catch (e) {
         // Keep the app running even if HLS init fails; legacy /v/:id still works.
-        console.error('HLS init failed:', e?.message || e);
+        logger.error('HLS init failed:', e);
     }
 
     app.listen(PORT, BIND, () => {
-        console.log(`📺 Serving ${ROOT} at http://${BIND}:${PORT}`);
+        logger.info(`📺 Serving ${ROOT} at http://${BIND}:${PORT}`);
     });
 }
 
 // surface async crashes instead of dying silently
 process.on('unhandledRejection', (err) => {
-    console.error('UNHANDLED REJECTION:', err);
+    logger.error('UNHANDLED REJECTION:', err);
 });
 process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION:', err);
+    logger.error('UNCAUGHT EXCEPTION:', err);
 });
 
 start().catch((err) => {
-    console.error('Fatal startup error:', err);
+    logger.error('Fatal startup error:', err);
     process.exit(1);
 });

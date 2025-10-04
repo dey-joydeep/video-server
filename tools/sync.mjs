@@ -8,11 +8,40 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
+import { spawn } from 'node:child_process';
 
 import { loadIndex, saveIndex } from '../lib/db.mjs';
 import { walkVideos } from '../lib/scan.mjs';
 import { hashFile } from '../lib/hash.mjs';
 import { generateThumb } from '../lib/ffmpeg.mjs';
+
+const FFPROBE_PATH = process.env.FFPROBE_PATH || 'ffprobe';
+
+function ffprobeDurationMs(filePath) {
+    return new Promise((resolve, reject) => {
+        const p = spawn(
+            FFPROBE_PATH,
+            [
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=nokey=1:noprint_wrappers=1',
+                filePath,
+            ],
+            { windowsHide: true }
+        );
+        let out = '';
+        let err = '';
+        p.stdout.on('data', (d) => (out += d.toString()));
+        p.stderr.on('data', (d) => (err += d.toString()));
+        p.on('close', (code) => {
+            if (code !== 0) return reject(new Error(err.trim()));
+            const seconds = parseFloat(out.trim());
+            if (isNaN(seconds)) return resolve(null);
+            resolve(Math.floor(seconds * 1000));
+        });
+        p.on('error', (e) => reject(e));
+    });
+}
 
 dotenv.config();
 
@@ -254,8 +283,18 @@ export async function runSync(opts = {}) {
             }
         }
 
-        // Upsert record (only set thumb if it actually exists)
-        const rec = { hash: fileHash, size, mtimeMs };
+        // Upsert record
+        let durationMs = existing?.durationMs ?? null;
+        if (durationMs === null) {
+            try {
+                logLine(`• Probing duration for ${rel}`);
+                durationMs = await ffprobeDurationMs(full);
+            } catch (e) {
+                logLine(`⚠️  ffprobe failed for ${rel}: ${e.message}`);
+            }
+        }
+
+        const rec = { hash: fileHash, size, mtimeMs, durationMs };
         if (fs.existsSync(thumbPath)) rec.thumb = thumbName;
         oldFiles[rel] = rec;
 

@@ -61,88 +61,43 @@ function render() {
 function bindCards() {
     listEl.querySelectorAll('.card').forEach((card) => {
         const id = card.dataset.id;
-        const img = card.querySelector('.thumb');
+        const previewClip = state.items.find(it => it.id === id)?.previewClip;
 
         let previewTimer = null;
-        let hls = null;
-        let vid = null;
+        let videoEl = null;
 
-        const cleanup = () => {
-            if (vid) {
-                try {
-                    vid.pause();
-                } catch {}
-                vid.remove();
-                vid = null;
-            }
-            if (hls) {
-                try {
-                    hls.destroy();
-                } catch {}
-                hls = null;
-            }
-            if (!img.isConnected) {
-                card.insertBefore(img, card.firstChild);
-            }
-        };
+        const startPreview = () => {
+            if (!state.prefs.preview || !previewClip) return;
 
-        const startPreview = async () => {
-            if (!state.prefs.preview) return;
-            if (vid) return;
-            try {
-                const r = await fetch(
-                    '/api/session?id=' + encodeURIComponent(id)
-                );
-                if (!r.ok) return;
-                const { hlsUrl } = await r.json();
-                vid = document.createElement('video');
-                vid.muted = true;
-                vid.playsInline = true;
-                vid.autoplay = true;
-                vid.controls = false;
-                vid.volume = parseFloat(prefVolume.value || '0');
-                vid.style.width = '100%';
-                vid.style.borderRadius = '10px';
+            const img = card.querySelector('.thumb');
+            if (!img) return;
 
-                if (vid.canPlayType('application/vnd.apple.mpegurl')) {
-                    vid.src = hlsUrl;
-                } else if (window.Hls && window.Hls.isSupported()) {
-                    const _hls = new Hls();
-                    _hls.loadSource(hlsUrl);
-                    _hls.attachMedia(vid);
-                    hls = _hls;
-                } else {
-                    return;
-                }
+            videoEl = document.createElement('video');
+            videoEl.classList.add('thumb');
+            videoEl.src = previewClip;
+            videoEl.muted = true;
+            videoEl.loop = true;
+            videoEl.playsInline = true;
+            videoEl.autoplay = true;
 
-                img.replaceWith(vid);
-
-                // Add a simple loop to seek to a random position
-                const jump = () => {
-                    if (vid && vid.duration && isFinite(vid.duration)) {
-                        let max = Math.max(0, vid.duration - 3);
-                        let t = Math.random() * max;
-                        if (t < 0) t = 0;
-                        vid.currentTime = t;
-                    }
-                };
-                const previewInterval = setInterval(jump, 3000);
-                vid.addEventListener('pause', () => clearInterval(previewInterval), { once: true });
-
-            } catch (e) {
-                console.error("Preview failed", e);
-                cleanup();
-            }
+            img.replaceWith(videoEl);
+            videoEl.play().catch(e => console.warn("Preview play failed", e));
         };
 
         const cancelPreview = () => {
             clearTimeout(previewTimer);
             previewTimer = null;
-            cleanup();
+            if (videoEl) {
+                videoEl.pause();
+                const img = new Image();
+                img.src = `/thumbs/${id}.jpg`;
+                img.classList.add('thumb');
+                videoEl.replaceWith(img);
+                videoEl = null;
+            }
         };
 
         if (!state.isMobile) {
-            // Mouse events for desktop devices
             card.addEventListener('mouseenter', () => {
                 previewTimer = setTimeout(startPreview, 250);
             });
@@ -150,9 +105,8 @@ function bindCards() {
         }
 
         if (state.isTouch) {
-            // Touch events for touch-enabled devices
             card.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Prevent click event from firing immediately
+                e.preventDefault();
                 previewTimer = setTimeout(startPreview, 250);
             });
             card.addEventListener('touchend', cancelPreview);
@@ -174,7 +128,7 @@ function bindCards() {
         });
 
         card.querySelector('.title')?.classList.add('pointer');
-        img?.classList.add('pointer');
+        card.querySelector('.thumb')?.classList.add('pointer');
     });
 }
 

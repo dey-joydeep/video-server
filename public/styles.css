@@ -214,3 +214,37 @@ footer.app {
 .hidden {
     display: none;
 }
+
+/* --- Timeline Preview --- */
+.progress-bar-preview {
+    position: absolute;
+    bottom: 60px; /* Adjust based on video controls height */
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 4px;
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none; /* Prevent mouse interaction */
+    transform: translateX(-50%); /* Center on cursor */
+}
+
+.progress-bar-preview.visible {
+    display: flex;
+}
+
+.preview-thumb {
+    background-size: auto;
+    background-repeat: no-repeat;
+    background-color: #000;
+}
+
+.preview-time {
+    font-size: 12px;
+    margin-top: 4px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0 4px;
+    border-radius: 2px;
+}
