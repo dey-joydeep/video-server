@@ -6,10 +6,8 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "nodemon",
-    "sync": "node tools/sync.mjs",
-    "start:sync": "npm run sync && node server.mjs",
-    "sprite": "node tools/sprite-generator.mjs",
-    "clip": "node tools/generate-clips.mjs"
+    "process": "node tools/main.mjs",
+    "start:sync": "npm run process && node server.mjs"
   },
   "dependencies": {
     "dotenv": "^17.2.2",

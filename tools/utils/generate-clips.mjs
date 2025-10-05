@@ -2,8 +2,13 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 import dotenv from 'dotenv';
-import { loadIndex } from '../lib/db.mjs';
-import logger from '../lib/logger.mjs';
+import { loadIndex } from '../../lib/db.mjs';
+import { createLogger } from '../../lib/logger.mjs';
+
+const logger = createLogger({
+    dirname: 'logs/tools-log',
+    filename: 'clips-%DATE%.log',
+});
 
 dotenv.config();
 
@@ -13,6 +18,7 @@ const VIDEO_ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
 const THUMBS_DIR = path.resolve(process.env.THUMBS_DIR || path.join(CWD, 'thumbs'));
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(CWD, 'data'));
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
+const SUFFIX_PREVIEW_CLIP = process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4';
 
 // --- Helper to run a process ---
 function run(cmd, args) {
@@ -30,7 +36,7 @@ function run(cmd, args) {
 }
 
 // --- Main generation logic ---
-async function generateClips() {
+export async function generateClips() {
     logger.info('[CLIP] Starting preview clip generation process...');
     const db = loadIndex(DATA_DIR, VIDEO_ROOT);
     const videos = Object.entries(db.files);
@@ -49,7 +55,9 @@ async function generateClips() {
             continue;
         }
 
-        const clipPath = path.join(THUMBS_DIR, `${hash}_preview.mp4`);
+        const assetDir = path.join(THUMBS_DIR, hash);
+        const clipPath = path.join(assetDir, `${hash}${SUFFIX_PREVIEW_CLIP}`);
+
         logger.info(`[CLIP] [${i + 1}/${videos.length}] Processing: ${relPath}`);
 
         if (fs.existsSync(clipPath)) {
@@ -100,7 +108,3 @@ async function generateClips() {
     logger.info('[CLIP] Preview clip generation process finished.');
 }
 
-generateClips().catch(err => {
-    logger.error('[CLIP] A fatal error occurred:', err);
-    process.exit(1);
-});

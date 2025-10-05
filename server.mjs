@@ -9,8 +9,12 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { fileURLToPath } from 'url';
 import { spawn } from 'node:child_process';
-import { setupHls } from './lib/hls.mjs'; // HLS module
-import logger from './lib/logger.mjs';
+import { createLogger } from './lib/logger.mjs'; // HLS module
+
+const logger = createLogger({
+    dirname: 'logs',
+    filename: 'video_server_%DATE%.log',
+});
 
 dotenv.config();
 
@@ -215,12 +219,20 @@ app.get('/api/list', (req, res) => {
     const total = items.length;
     const page = items
         .slice(offset, offset + limit)
-        .map(({ id, name, mtimeMs, durationMs, thumb }) => {
-            const item = { id, name, mtimeMs, durationMs, thumb };
+        .map(({ id, name, mtimeMs, durationMs }) => {
+            const item = { id, name, mtimeMs, durationMs };
             if (id) {
-                const clipPath = path.join(THUMBS_DIR, `${id}_preview.mp4`);
+                const assetDir = path.join(THUMBS_DIR, id);
+                // Dynamically add thumb
+                const thumbPath = path.join(assetDir, `${id}${process.env.SUFFIX_THUMB || '_thumb.jpg'}`);
+                if (fs.existsSync(thumbPath)) {
+                    item.thumb = `${id}/${id}${process.env.SUFFIX_THUMB || '_thumb.jpg'}`;
+                }
+
+                // Dynamically add preview clip
+                const clipPath = path.join(assetDir, `${id}${process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'}`);
                 if (fs.existsSync(clipPath)) {
-                    item.previewClip = `/thumbs/${id}_preview.mp4`;
+                    item.previewClip = `${id}/${id}${process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'}`;
                 }
             }
             return item;
@@ -306,9 +318,9 @@ app.get('/api/meta', async (req, res) => {
     const response = { id: hash, mtimeMs: stat.mtimeMs, durationMs };
 
     if (hash) {
-        const vttPath = path.join(THUMBS_DIR, `${hash}_sprite.vtt`);
+        const vttPath = path.join(THUMBS_DIR, hash, `${hash}${process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'}`);
         if (fs.existsSync(vttPath)) {
-            response.sprite = `/thumbs/${hash}_sprite.vtt`;
+            response.sprite = `/thumbs/${hash}/${hash}${process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'}`;
         }
     }
 

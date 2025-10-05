@@ -1,273 +1,235 @@
 {
   "version": 1,
-  "updatedAt": "2025-10-04T09:28:47.715Z",
+  "updatedAt": "2025-10-05T02:24:26.015Z",
   "videoRoot": "D:\\Videos\\P",
   "files": {
     "hm/Vid_ (1).mp4": {
       "hash": "7b3e2f4c69b8943f0cd75c58ddd14674",
       "size": 110010680,
       "mtimeMs": 1759046666354.0642,
-      "durationMs": 1525400,
-      "thumb": "7b3e2f4c69b8943f0cd75c58ddd14674.jpg"
+      "durationMs": 1525400
     },
     "hm/Vid_ (2).mp4": {
       "hash": "031173cc7662c7346594213657c5f740",
       "size": 277361229,
       "mtimeMs": 1740563573136.212,
-      "durationMs": 2008291,
-      "thumb": "031173cc7662c7346594213657c5f740.jpg"
+      "durationMs": 2008291
     },
     "hm/Vid_ (3).mp4": {
       "hash": "680b712ece2c74bf852342497e9674ab",
       "size": 88119492,
       "mtimeMs": 1759046068353.7727,
-      "durationMs": 398407,
-      "thumb": "680b712ece2c74bf852342497e9674ab.jpg"
+      "durationMs": 398407
     },
     "hm/Vid_ (4).mp4": {
       "hash": "ee37ce3b6b8972efb0ccea1d3007de62",
       "size": 308407004,
       "mtimeMs": 1759043451063.0398,
-      "durationMs": 1396833,
-      "thumb": "ee37ce3b6b8972efb0ccea1d3007de62.jpg"
+      "durationMs": 1396833
     },
     "hm/Vid_ (5).mp4": {
       "hash": "6a7738ce9e7a593c66ad2095d31e8a1d",
       "size": 103444262,
       "mtimeMs": 1759040544115.44,
-      "durationMs": 189984,
-      "thumb": "6a7738ce9e7a593c66ad2095d31e8a1d.jpg"
+      "durationMs": 189984
     },
     "hm/Vid_ (6).mp4": {
       "hash": "dc4249f13ec4841af47690c3ca5896dd",
       "size": 51296202,
       "mtimeMs": 1740566085663.624,
-      "durationMs": 1006333,
-      "thumb": "dc4249f13ec4841af47690c3ca5896dd.jpg"
+      "durationMs": 1006333
     },
     "hm/Vid_ (7).mp4": {
       "hash": "39a752b01863ed03de1c7c80b21a0ac4",
       "size": 40095084,
       "mtimeMs": 1759042061666.836,
-      "durationMs": 569125,
-      "thumb": "39a752b01863ed03de1c7c80b21a0ac4.jpg"
+      "durationMs": 569125
     },
     "hm/Vid_ (8).mp4": {
       "hash": "c26e14a49e62bea195e228484bb033ad",
       "size": 21302692,
       "mtimeMs": 1759046156960.3828,
-      "durationMs": 297559,
-      "thumb": "c26e14a49e62bea195e228484bb033ad.jpg"
+      "durationMs": 297559
     },
     "hm/Vid_ (9).mp4": {
       "hash": "babfded5ca4058e99738fede1c25bb05",
       "size": 10187384,
       "mtimeMs": 1759040812120.3264,
-      "durationMs": 124633,
-      "thumb": "babfded5ca4058e99738fede1c25bb05.jpg"
+      "durationMs": 124633
     },
     "hm/Vid_ (10).mp4": {
       "hash": "e94c416c5eae9df739b0be64689146b7",
       "size": 300803821,
       "mtimeMs": 1754196830721.8152,
-      "durationMs": 963541,
-      "thumb": "e94c416c5eae9df739b0be64689146b7.jpg"
+      "durationMs": 963541
     },
     "hm/Vid_ (11).mp4": {
       "hash": "3b93e4d89117c3d0f8cd72b36cfd7bd4",
       "size": 13406322,
       "mtimeMs": 1759038174742.366,
-      "durationMs": 187453,
-      "thumb": "3b93e4d89117c3d0f8cd72b36cfd7bd4.jpg"
+      "durationMs": 187453
     },
     "hm/Vid_ (12).mp4": {
       "hash": "6855ef0c78be31366607c91dac442fd4",
       "size": 10743822,
       "mtimeMs": 1742110607547.2107,
-      "durationMs": 161900,
-      "thumb": "6855ef0c78be31366607c91dac442fd4.jpg"
+      "durationMs": 161900
     },
     "hm/Vid_ (13).mp4": {
       "hash": "b22e3e44f1ca90c8b19c3f3c9a7113cc",
       "size": 377997076,
       "mtimeMs": 1742110490220.8916,
-      "durationMs": 4508871,
-      "thumb": "b22e3e44f1ca90c8b19c3f3c9a7113cc.jpg"
+      "durationMs": 4508871
     },
     "hm/Vid_ (14).mp4": {
       "hash": "88c99e9375674b5ff444bc2eecd1f099",
       "size": 230173958,
       "mtimeMs": 1754196793234.7712,
-      "durationMs": 580166,
-      "thumb": "88c99e9375674b5ff444bc2eecd1f099.jpg"
+      "durationMs": 580166
     },
     "hm/Vid_ (15).mp4": {
       "hash": "406d0a65b73263024d6b4df60a26b902",
       "size": 3386597717,
       "mtimeMs": 1754201514794.6753,
-      "durationMs": 26451666,
-      "thumb": "406d0a65b73263024d6b4df60a26b902.jpg"
+      "durationMs": 26451666
     },
     "hm/Vid_ (16).mp4": {
       "hash": "0ce301ae0c2adddd8ad03c30068fb845",
       "size": 118721329,
       "mtimeMs": 1754202791277.622,
-      "durationMs": 1234837,
-      "thumb": "0ce301ae0c2adddd8ad03c30068fb845.jpg"
+      "durationMs": 1234837
     },
     "hm/Vid_ (17).mp4": {
       "hash": "8e8adbec13c8f56ebc6ddff544543b0e",
       "size": 74963218,
       "mtimeMs": 1742109100909.8474,
-      "durationMs": 1065966,
-      "thumb": "8e8adbec13c8f56ebc6ddff544543b0e.jpg"
+      "durationMs": 1065966
     },
     "hm/Vid_ (18).mp4": {
       "hash": "801e86c150916db48c064db17f88705f",
       "size": 105651758,
       "mtimeMs": 1759038423424.8804,
-      "durationMs": 515923,
-      "thumb": "801e86c150916db48c064db17f88705f.jpg"
+      "durationMs": 515923
     },
     "hm/Vid_ (19).mp4": {
       "hash": "2bfe357e6510bd8c017a2d4283d13d77",
       "size": 46982043,
       "mtimeMs": 1742108168390.667,
-      "durationMs": 280233,
-      "thumb": "2bfe357e6510bd8c017a2d4283d13d77.jpg"
+      "durationMs": 280233
     },
     "hm/Vid_ (20).mp4": {
       "hash": "a06188e7e76694108afbb7d1000a478c",
       "size": 2566592548,
       "mtimeMs": 1754205841161.5217,
-      "durationMs": 22217966,
-      "thumb": "a06188e7e76694108afbb7d1000a478c.jpg"
+      "durationMs": 22217966
     },
     "hm/Vid_ (21).mp4": {
       "hash": "d85906da2ea287204cba5945fe9f0a45",
       "size": 884933923,
       "mtimeMs": 1742114951536.3105,
-      "durationMs": 6327166,
-      "thumb": "d85906da2ea287204cba5945fe9f0a45.jpg"
+      "durationMs": 6327166
     },
     "hm/Vid_ (22).mp4": {
       "hash": "bddaad6dda6edd7e201957ec6387335b",
       "size": 12543610,
       "mtimeMs": 1759039913434.2556,
-      "durationMs": 89699,
-      "thumb": "bddaad6dda6edd7e201957ec6387335b.jpg"
+      "durationMs": 89699
     },
     "hm/Vid_ (23).mp4": {
       "hash": "82d5c8e4182b6201bd2a8b827ac6db0d",
       "size": 48133314,
       "mtimeMs": 1759039734094.004,
-      "durationMs": 576916,
-      "thumb": "82d5c8e4182b6201bd2a8b827ac6db0d.jpg"
+      "durationMs": 576916
     },
     "hm/Vid_ (24).mp4": {
       "hash": "3a70df184c7e861a52a4310b188ea3aa",
       "size": 90233395,
       "mtimeMs": 1759044926744.3992,
-      "durationMs": 1753880,
-      "thumb": "3a70df184c7e861a52a4310b188ea3aa.jpg"
+      "durationMs": 1753880
     },
     "hm/Vid_ (25).mp4": {
       "hash": "459022cef5fa114199744f6e24a10d2c",
       "size": 141503753,
       "mtimeMs": 1759041521434.102,
-      "durationMs": 263569,
-      "thumb": "459022cef5fa114199744f6e24a10d2c.jpg"
+      "durationMs": 263569
     },
     "hm/Vid_ (26).mp4": {
       "hash": "3b22bb5974bf00b48207f57223d5bd8b",
       "size": 93149571,
       "mtimeMs": 1759041891023.916,
-      "durationMs": 676840,
-      "thumb": "3b22bb5974bf00b48207f57223d5bd8b.jpg"
+      "durationMs": 676840
     },
     "hm/Vid_ (27).mp4": {
       "hash": "46482d48515c77841991ee8240c2965b",
       "size": 256972584,
       "mtimeMs": 1759044317361.6616,
-      "durationMs": 3369633,
-      "thumb": "46482d48515c77841991ee8240c2965b.jpg"
+      "durationMs": 3369633
     },
     "hm/Vid_ (28).mp4": {
       "hash": "1e038d81990b71e8cbb9272e8b145b36",
       "size": 109850215,
       "mtimeMs": 1740559017184.0854,
-      "durationMs": 2034063,
-      "thumb": "1e038d81990b71e8cbb9272e8b145b36.jpg"
+      "durationMs": 2034063
     },
     "hm/Vid_ (29).mp4": {
       "hash": "7d41af701b1d2455c16e2100398a851a",
       "size": 104662728,
       "mtimeMs": 1740558935610.3835,
-      "durationMs": 1917023,
-      "thumb": "7d41af701b1d2455c16e2100398a851a.jpg"
+      "durationMs": 1917023
     },
     "hm/Vid_ (30).mp4": {
       "hash": "c1950aaed2e224a5cb0a1d6c24fdd83d",
       "size": 394665007,
       "mtimeMs": 1740558739806.8462,
-      "durationMs": 7215423,
-      "thumb": "c1950aaed2e224a5cb0a1d6c24fdd83d.jpg"
+      "durationMs": 7215423
     },
     "hm/Vid_ (31).mp4": {
       "hash": "a76c922eb7a8c140ff8b47cfb59842ff",
       "size": 4744559,
       "mtimeMs": 1740560764987.848,
-      "durationMs": 214360,
-      "thumb": "a76c922eb7a8c140ff8b47cfb59842ff.jpg"
+      "durationMs": 214360
     },
     "Vid_ (1).mp4": {
       "hash": "8644aea4f380308c57421c7c8238c83c",
       "size": 200421097,
       "mtimeMs": 1703404267392.0623,
-      "durationMs": 1672326,
-      "thumb": "8644aea4f380308c57421c7c8238c83c.jpg"
+      "durationMs": 1672326
     },
     "Vid_ (2).mp4": {
       "hash": "c6811ada535f218a109ec23a22d3872d",
       "size": 573166850,
       "mtimeMs": 1703912531814.5537,
-      "durationMs": 2799040,
-      "thumb": "c6811ada535f218a109ec23a22d3872d.jpg"
+      "durationMs": 2799040
     },
     "Vid_ (3).mp4": {
       "hash": "1a1c56d40b567fefa3d9619931e8ba54",
       "size": 295719844,
       "mtimeMs": 1703398500663.7056,
-      "durationMs": 1559220,
-      "thumb": "1a1c56d40b567fefa3d9619931e8ba54.jpg"
+      "durationMs": 1559220
     },
     "Vid_ (4).mp4": {
       "hash": "46b49a4294f4acf7504fff9440ae177e",
       "size": 417276115,
       "mtimeMs": 1703404923932.5464,
-      "durationMs": 2430583,
-      "thumb": "46b49a4294f4acf7504fff9440ae177e.jpg"
+      "durationMs": 2430583
     },
     "Vid_ (5).mp4": {
       "hash": "5335b3aa152bad0ed39be42d4ae26e18",
       "size": 276441737,
       "mtimeMs": 1703401258030.8296,
-      "durationMs": 2776726,
-      "thumb": "5335b3aa152bad0ed39be42d4ae26e18.jpg"
+      "durationMs": 2776726
     },
     "Vid_ (6).mp4": {
       "hash": "991b29cf84cb32ed4b2efb756c78ad1f",
       "size": 226704802,
       "mtimeMs": 1703398491189.3396,
-      "durationMs": 1886846,
-      "thumb": "991b29cf84cb32ed4b2efb756c78ad1f.jpg"
+      "durationMs": 1886846
     },
     "Vid_ (7).mp4": {
       "hash": "8829ed4913c329c06a569bded2c36411",
       "size": 8019314,
       "mtimeMs": 1703399959414.8318,
-      "durationMs": 1297832,
-      "thumb": "8829ed4913c329c06a569bded2c36411.jpg"
+      "durationMs": 1297832
     }
   }
 }

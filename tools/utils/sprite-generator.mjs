@@ -4,8 +4,13 @@ import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
-import { loadIndex } from '../lib/db.mjs';
-import logger from '../lib/logger.mjs';
+import { loadIndex } from '../../lib/db.mjs';
+import { createLogger } from '../../lib/logger.mjs';
+
+const logger = createLogger({
+    dirname: 'logs/tools-log',
+    filename: 'sprite-generator-%DATE%.log',
+});
 
 dotenv.config();
 
@@ -15,6 +20,9 @@ const VIDEO_ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
 const THUMBS_DIR = path.resolve(process.env.THUMBS_DIR || path.join(CWD, 'thumbs'));
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(CWD, 'data'));
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
+
+const SUFFIX_SPRITE_IMG = process.env.SUFFIX_SPRITE_IMG || '_sprite.jpg';
+const SUFFIX_SPRITE_VTT = process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt';
 
 const SPRITE_INTERVAL_SEC = 5; // one frame every 5 seconds
 const SPRITE_THUMB_WIDTH = 160; // width of each small thumbnail in the sprite
@@ -44,7 +52,7 @@ function formatVttTime(seconds) {
 }
 
 // --- Main generation logic ---
-async function generateSprites() {
+export async function generateSprites() {
     logger.info('[SPRITE] Starting sprite generation process...');
     const db = loadIndex(DATA_DIR, VIDEO_ROOT);
     const videos = Object.entries(db.files);
@@ -64,7 +72,8 @@ async function generateSprites() {
         }
 
         const videoFullPath = path.join(VIDEO_ROOT, relPath);
-        const spriteVttPath = path.join(THUMBS_DIR, `${hash}_sprite.vtt`);
+        const assetDir = path.join(THUMBS_DIR, hash);
+        const spriteVttPath = path.join(assetDir, `${hash}${SUFFIX_SPRITE_VTT}`);
 
         logger.info(`[SPRITE] [${i + 1}/${videos.length}] Processing: ${relPath}`);
 
@@ -74,15 +83,12 @@ async function generateSprites() {
         }
 
         // Clean up any previous partial runs to ensure a fresh start
-        const oldSprites = fs.readdirSync(THUMBS_DIR).filter(f => f.startsWith(`${hash}_sprite_`) && f.endsWith('.jpg'));
+        const oldSprites = fs.readdirSync(assetDir).filter(f => f.includes('_sprite_') && f.endsWith('.jpg'));
         for(const oldSprite of oldSprites) {
-            try { fs.unlinkSync(path.join(THUMBS_DIR, oldSprite)); } catch {}
+            try { fs.unlinkSync(path.join(assetDir, oldSprite)); } catch {}
         }
-        const oldSingleSprite = path.join(THUMBS_DIR, `${hash}_sprite.jpg`);
-        if(fs.existsSync(oldSingleSprite)) try { fs.unlinkSync(oldSingleSprite); } catch {}
 
-
-        const tempDir = path.join(THUMBS_DIR, `temp_${hash}`);
+        const tempDir = path.join(assetDir, 'temp');
         try {
             // 1. Create temp dir
             if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
@@ -93,7 +99,8 @@ async function generateSprites() {
             const filtersToTry = [
                 `format=yuv420p,fps=1/${SPRITE_INTERVAL_SEC},scale=${SPRITE_THUMB_WIDTH}:-1`,
                 `zscale=matrixin=bt709,format=yuv420p,fps=1/${SPRITE_INTERVAL_SEC},scale=${SPRITE_THUMB_WIDTH}:-1`,
-                `fps=1/${SPRITE_INTERVAL_SEC},scale=${SPRITE_THUMB_WIDTH}:-1` // Original as last resort
+                `fps=1/${SPRITE_INTERVAL_SEC},scale=${SPRITE_THUMB_WIDTH}:-1`, // Original as last resort
+                `zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=709,format=yuv420p,fps=1/${SPRITE_INTERVAL_SEC},scale=${SPRITE_THUMB_WIDTH}:-1` // Advanced fallback
             ];
             let success = false;
             for (const vf of filtersToTry) {
@@ -109,7 +116,7 @@ async function generateSprites() {
                     logger.info(`[SPRITE] ffmpeg succeeded with filter: ${vf}`);
                     break;
                 } catch (e) {
-                    logger.warn(`[SPRITE] ffmpeg failed with filter: ${vf}. Trying next fallback.`);
+                    logger.warn(`[SPRITE] ffmpeg failed with filter: ${vf}. Trying next fallback.`, e);
                 }
             }
             if (!success) throw new Error('All ffmpeg fallback filters failed.');
@@ -143,8 +150,8 @@ async function generateSprites() {
 
             for (const [chunkIndex, frameChunk] of frameChunks.entries()) {
                 const isMultiSprite = frameChunks.length > 1;
-                const spriteFileName = isMultiSprite ? `${hash}_sprite_${chunkIndex + 1}.jpg` : `${hash}_sprite.jpg`;
-                const currentSpritePath = path.join(THUMBS_DIR, spriteFileName);
+                const spriteFileName = isMultiSprite ? `${hash}${SUFFIX_SPRITE_IMG.replace('.jpg', `_${chunkIndex + 1}.jpg`)}` : `${hash}${SUFFIX_SPRITE_IMG}`;
+                const currentSpritePath = path.join(assetDir, spriteFileName);
                 const totalWidth = thumbWidth * frameChunk.length;
 
                 logger.info(`[SPRITE] Generating sheet #${chunkIndex + 1} with ${frameChunk.length} frames...`);
@@ -178,22 +185,22 @@ async function generateSprites() {
             logger.info(`[SPRITE] VTT file saved to ${spriteVttPath}`);
 
         } catch (error) {
-            logger.error(`[SPRITE] Failed to process ${relPath}: ${error.message}`);
+            logger.error(`[SPRITE] Failed to process ${relPath}`, error);
         } finally {
-            // 5. Clean up temp dir
+            // 5. Clean up temp dir (asynchronously, with a delay)
             if (fs.existsSync(tempDir)) {
-                try {
-                    fs.rmSync(tempDir, { recursive: true, force: true });
-                } catch (e) {
-                    logger.warn(`[SPRITE] Failed to clean up temp directory ${tempDir}: ${e.message}`);
-                }
+                setTimeout(() => {
+                    fs.rm(tempDir, { recursive: true, force: true }, (err) => {
+                        if (err) {
+                            logger.warn(`[SPRITE] Delayed cleanup failed for ${tempDir}: ${err.message}`);
+                        } else {
+                            logger.info(`[SPRITE] Successfully cleaned up temp directory ${tempDir}`);
+                        }
+                    });
+                }, 5000); // 5-second delay
             }
         }
     }
     logger.info('[SPRITE] Sprite generation process finished.');
 }
 
-generateSprites().catch(err => {
-    logger.error('[SPRITE] A fatal error occurred:', err);
-    process.exit(1);
-});

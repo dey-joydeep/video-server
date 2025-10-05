@@ -10,10 +10,16 @@ import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
 import { spawn } from 'node:child_process';
 
-import { loadIndex, saveIndex } from '../lib/db.mjs';
-import { walkVideos } from '../lib/scan.mjs';
-import { hashFile } from '../lib/hash.mjs';
-import { generateThumb } from '../lib/ffmpeg.mjs';
+import { createLogger } from '../../lib/logger.mjs';
+import { loadIndex, saveIndex } from '../../lib/db.mjs';
+import { walkVideos } from '../../lib/scan.mjs';
+import { hashFile } from '../../lib/hash.mjs';
+import { generateThumb } from '../../lib/ffmpeg.mjs';
+
+const logger = createLogger({
+    dirname: 'logs/tools-log',
+    filename: 'sync-%DATE%.log',
+});
 
 const FFPROBE_PATH = process.env.FFPROBE_PATH || 'ffprobe';
 
@@ -49,15 +55,13 @@ dotenv.config();
 let _linesPrinted = 0; // number of log lines printed under the status
 
 function printInitialStatus(total) {
-    const line = `Progress: 0% (0/${total}) | new:0 cached:0 dup:0 renamed:0 errors:0`;
+    const line = `Progress: 0% (0/${total}) | dup:0 renamed:0 errors:0`;
     process.stdout.write(line + '\n'); // status occupies line 1
 }
 
 function updateStatus({
     done,
     total,
-    generated,
-    cached,
     dupes,
     renamed,
     errors,
@@ -70,7 +74,7 @@ function updateStatus({
     const percent = Math.floor((done / Math.max(total, 1)) * 100);
     const line =
         `Progress: ${String(percent).padStart(3, ' ')}% (${done}/${total}) | ` +
-        `new:${generated} cached:${cached} dup:${dupes} renamed:${renamed} errors:${errors}`;
+        `dup:${dupes} renamed:${renamed} errors:${errors}`;
     process.stdout.write(line + '\n');
     try {
         readline.moveCursor(process.stdout, 0, _linesPrinted);
@@ -126,8 +130,6 @@ export async function runSync(opts = {}) {
     const t0 = Date.now();
 
     let completed = 0;
-    let generated = 0;
-    let cached = 0; // present before this run
     let dupes = 0; // created earlier in this run for same hash
     let renamed = 0;
     let errors = 0;
@@ -140,13 +142,6 @@ export async function runSync(opts = {}) {
         if (!rec?.hash) continue;
         if (!oldHashToPaths.has(rec.hash)) oldHashToPaths.set(rec.hash, []);
         oldHashToPaths.get(rec.hash).push(p);
-    }
-
-    // Snapshot: which thumbs existed before this run?
-    const thumbsBefore = new Set();
-    for (const f of fs.readdirSync(THUMBS_DIR, { withFileTypes: true })) {
-        if (f.isFile() && f.name.toLowerCase().endsWith('.jpg'))
-            thumbsBefore.add(f.name);
     }
 
     // Track first file path seen for a given content hash within this run
@@ -193,14 +188,22 @@ export async function runSync(opts = {}) {
                 updateStatus({
                     done: completed,
                     total,
-                    generated,
-                    cached,
                     dupes,
                     renamed,
                     errors,
                 });
                 continue; // can't proceed without a hash
             }
+        }
+
+        // Create the dedicated directory for this hash if it's the first time we've seen it
+        if (fileHash && !oldHashToPaths.has(fileHash) && !seenHashFirstRel.has(fileHash)) {
+            fs.mkdirSync(path.join(THUMBS_DIR, fileHash), { recursive: true });
+        }
+
+        // Mark first time we see this content in this run
+        if (!seenHashFirstRel.has(fileHash)) {
+            seenHashFirstRel.set(fileHash, rel);
         }
 
         // Detect rename: new path not in old index, but same hash existed on a path that is now gone
@@ -215,71 +218,18 @@ export async function runSync(opts = {}) {
                 const oldPath = candidates[0];
                 const oldRec = oldFiles[oldPath];
                 delete oldFiles[oldPath];
-                oldFiles[rel] = { ...oldRec, size, mtimeMs }; // keep same hash & thumb
+                oldFiles[rel] = { ...oldRec, size, mtimeMs }; // keep same hash
                 renamed++;
                 logLine(`↪️  Renamed: ${oldPath} → ${rel}`);
                 completed++;
                 updateStatus({
                     done: completed,
                     total,
-                    generated,
-                    cached,
                     dupes,
                     renamed,
                     errors,
                 });
                 continue;
-            }
-        }
-
-        // Ensure thumbnail exists (by hash, one thumb shared for duplicates)
-        const thumbName = `${fileHash}.jpg`;
-        const thumbPath = path.join(THUMBS_DIR, thumbName);
-
-        // Mark first time we see this content in this run
-        if (!seenHashFirstRel.has(fileHash)) {
-            seenHashFirstRel.set(fileHash, rel);
-        }
-
-        if (!fs.existsSync(thumbPath)) {
-            // No file on disk yet: either it's the first time for this content,
-            // or we haven't generated it yet (should be first occurrence).
-            try {
-                logLine(`• Generating thumbnail for ${rel}`);
-                await generateThumb({
-                    filePath: full,
-                    hash: fileHash,
-                    thumbsDir: THUMBS_DIR,
-                    width: THUMB_WIDTH,
-                    atSec: THUMB_AT_SECONDS,
-                });
-                generated++;
-            } catch (e) {
-                errors++;
-                const lines = String(e?.message || 'ffmpeg failed')
-                    .replace(/\r\n/g, '\n')
-                    .replace(/\r/g, '\n')
-                    .split('\n');
-                logLine(`⚠️  Thumbnail failed for ${rel} - ${lines[0]}`);
-                for (let j = 1; j < lines.length; j++)
-                    logLine(`    ${lines[j]}`);
-                // continue; we’ll still record the file without a thumb
-            }
-        } else {
-            // Thumb file exists on disk. Distinguish cached vs duplicate.
-            if (thumbsBefore.has(thumbName)) {
-                cached++;
-                logLine(`✓ Cached (pre-run) thumbnail for ${rel}`);
-            } else {
-                dupes++;
-                const firstRel =
-                    seenHashFirstRel.get(fileHash) || '(earlier file in run)';
-                logLine(
-                    `↔️  Duplicate content: ${rel} reuses thumbnail from ${firstRel} (hash ${fileHash.slice(
-                        0,
-                        8
-                    )}…)`
-                );
             }
         }
 
@@ -295,7 +245,6 @@ export async function runSync(opts = {}) {
         }
 
         const rec = { hash: fileHash, size, mtimeMs, durationMs };
-        if (fs.existsSync(thumbPath)) rec.thumb = thumbName;
         oldFiles[rel] = rec;
 
         // Finished this file
@@ -303,8 +252,6 @@ export async function runSync(opts = {}) {
         updateStatus({
             done: completed,
             total,
-            generated,
-            cached,
             dupes,
             renamed,
             errors,
@@ -323,15 +270,13 @@ export async function runSync(opts = {}) {
     updateStatus({
         done: completed,
         total,
-        generated,
-        cached,
         dupes,
         renamed,
         errors,
     });
     const dt = ((Date.now() - t0) / 1000).toFixed(1);
     logLine(
-        `✅ Sync complete in ${dt}s: files=${completed}, new=${generated}, cached=${cached}, dup=${dupes}, renamed=${renamed}, errors=${errors}`
+        `✅ Sync complete in ${dt}s: files=${completed}, dup=${dupes}, renamed=${renamed}, errors=${errors}`
     );
 
     return db;
