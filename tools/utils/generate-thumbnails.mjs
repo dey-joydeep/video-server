@@ -36,7 +36,9 @@ export async function generateThumbnails() {
             continue; // Skip if thumb already exists
         }
 
-        logger.info(`[THUMB] [${i + 1}/${videos.length}] Generating for: ${relPath}`);
+        logger.info(
+            `[THUMB] [${i + 1}/${videos.length}] Generating for: ${relPath}`
+        );
 
         const videoFullPath = path.join(config.VIDEO_ROOT, relPath);
 
@@ -48,10 +50,11 @@ export async function generateThumbnails() {
                 atSec: config.THUMB_AT_SECONDS,
             });
         } catch (error) {
-            logger.error(`[THUMB] Failed to generate for ${relPath}: ${error.message}`);
+            logger.error(
+                `[THUMB] Failed to generate for ${relPath}: ${error.message}`
+            );
         }
     }
 
     logger.info('[THUMB] Thumbnail generation process finished.');
 }
-

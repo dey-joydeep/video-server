@@ -10,7 +10,6 @@ const settingsBtn = document.getElementById('settingsBtn');
 const settingsModal = document.getElementById('settingsModal');
 const prefPreview = document.getElementById('prefPreview');
 const prefVolume = document.getElementById('prefVolume');
-const closeSettings = document.getElementById('closeSettings');
 
 loadPrefs();
 prefPreview.checked = state.prefs.preview;
@@ -61,7 +60,7 @@ function render() {
 function bindCards() {
     listEl.querySelectorAll('.card').forEach((card) => {
         const id = card.dataset.id;
-        const previewClip = state.items.find(it => it.id === id)?.previewClip;
+        const previewClip = state.items.find((it) => it.id === id)?.previewClip;
 
         let previewTimer = null;
         let videoEl = null;
@@ -81,7 +80,7 @@ function bindCards() {
             videoEl.autoplay = true;
 
             img.replaceWith(videoEl);
-            videoEl.play().catch(e => console.warn("Preview play failed", e));
+            videoEl.play().catch((e) => console.warn('Preview play failed', e));
         };
 
         const cancelPreview = () => {

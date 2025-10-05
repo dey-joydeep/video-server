@@ -26,7 +26,9 @@ async function main() {
         process.exit(1); // Exit if sync fails, as generators depend on it
     }
 
-    logger.info('[MAIN] Starting parallel asset generation (thumbnails, sprites, clips)...');
+    logger.info(
+        '[MAIN] Starting parallel asset generation (thumbnails, sprites, clips)...'
+    );
 
     const results = await Promise.allSettled([
         generateThumbnails(),
@@ -47,13 +49,20 @@ async function main() {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     if (allSuccessful) {
-        logger.info(`[MAIN] Full processing pipeline finished successfully in ${duration}s.`);
+        logger.info(
+            `[MAIN] Full processing pipeline finished successfully in ${duration}s.`
+        );
     } else {
-        logger.error(`[MAIN] Full processing pipeline finished in ${duration}s with one or more errors.`);
+        logger.error(
+            `[MAIN] Full processing pipeline finished in ${duration}s with one or more errors.`
+        );
     }
 }
 
-main().catch(err => {
-    logger.error('[MAIN] An unexpected fatal error occurred in main orchestrator:', err);
+main().catch((err) => {
+    logger.error(
+        '[MAIN] An unexpected fatal error occurred in main orchestrator:',
+        err
+    );
     process.exit(1);
 });

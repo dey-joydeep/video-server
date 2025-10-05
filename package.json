@@ -1,24 +1,32 @@
 {
-  "name": "lan-video-server",
-  "version": "1.0.0",
-  "type": "module",
-  "description": "Simple LAN video server with thumbnails and incremental sync",
-  "scripts": {
-    "start": "node server.mjs",
-    "dev": "nodemon",
-    "process": "node tools/main.mjs",
-    "start:sync": "npm run process && node server.mjs"
-  },
-  "dependencies": {
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "mime": "^4.1.0",
-    "morgan": "^1.10.1",
-    "sharp": "^0.33.4",
-    "winston": "^3.18.3",
-    "winston-daily-rotate-file": "^5.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
-  }
+    "name": "lan-video-server",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Simple LAN video server with thumbnails and incremental sync",
+    "scripts": {
+        "start": "node server.mjs",
+        "dev": "nodemon",
+        "process": "node tools/main.mjs",
+        "start:sync": "npm run process && node server.mjs",
+        "format": "prettier --write .",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix"
+    },
+    "dependencies": {
+        "dotenv": "^17.2.2",
+        "express": "^5.1.0",
+        "mime": "^4.1.0",
+        "morgan": "^1.10.1",
+        "sharp": "^0.33.4",
+        "winston": "^3.18.3",
+        "winston-daily-rotate-file": "^5.0.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.37.0",
+        "eslint": "^9.37.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^16.4.0",
+        "nodemon": "^3.1.10",
+        "prettier": "^3.6.2"
+    }
 }

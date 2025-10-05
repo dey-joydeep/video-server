@@ -1,0 +1,36 @@
+import js from '@eslint/js';
+import prettierConfig from 'eslint-config-prettier';
+import globals from 'globals';
+
+export default [
+    // Configuration for Node.js files
+    {
+        files: ['lib/**/*.mjs', 'server.mjs', 'tools/**/*.mjs'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+            },
+        },
+    },
+    // Configuration for Browser files
+    {
+        files: ['public/js/**/*.js'],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+                Hls: 'readonly',
+            },
+        },
+    },
+    // Global recommended rules
+    js.configs.recommended,
+    // Prettier config to disable conflicting rules
+    prettierConfig,
+    // Custom rules for the whole project
+    {
+        rules: {
+            'no-unused-vars': 'warn',
+            'no-empty': 'warn',
+        },
+    },
+];

@@ -13,7 +13,11 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--fg);
-    font-family: system-ui, Segoe UI, Roboto, Arial;
+    font-family:
+        system-ui,
+        Segoe UI,
+        Roboto,
+        Arial;
 }
 header.app {
     position: sticky;

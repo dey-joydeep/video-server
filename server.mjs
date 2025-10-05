@@ -1,15 +1,20 @@
 // server.mjs — robust startup + HLS resolver via live scan (updated)
 // (keeps your routes; integrates HLS exactly once at startup)
 
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import mime from 'mime';
+import morgan from 'morgan';
+import { spawn } from 'node:child_process';
 import config from './lib/config.mjs';
+import { setupHls } from './lib/hls.mjs';
 import { createLogger } from './lib/logger.mjs';
 
 const logger = createLogger({
     dirname: config.LOGS_DIR,
     filename: 'video_server_%DATE%.log',
 });
-
-const __filename = fileURLToPath(import.meta.url);
 
 const app = express();
 
@@ -33,7 +38,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     logger.error('EXPRESS ERROR:', err);
     res.status(500).json({ error: 'server error' });
 });
@@ -130,7 +135,9 @@ function listAllVideos() {
             if (!VIDEO_EXTS.has(ext)) continue;
 
             const stat = fs.statSync(full);
-            const rel = path.relative(config.VIDEO_ROOT, full).replaceAll('\\', '/');
+            const rel = path
+                .relative(config.VIDEO_ROOT, full)
+                .replaceAll('\\', '/');
             const rec = byRel[rel] || {};
             out.push({
                 id: rec.hash || null,
@@ -207,7 +214,7 @@ app.get('/api/list', (req, res) => {
         .map(({ id, name, mtimeMs, durationMs }) => {
             const item = { id, name, mtimeMs, durationMs };
             if (id) {
-                const assetDir = path.join(THUMBS_DIR, id);
+                const assetDir = path.join(config.THUMBS_DIR, id);
                 // Dynamically add thumb
                 const thumbPath = path.join(
                     assetDir,
@@ -306,13 +313,15 @@ app.get('/api/meta', async (req, res) => {
     let durationMs = null;
     try {
         durationMs = await ffprobeDurationMs(abs);
-    } catch {}
+    } catch {
+        /* Ignored */
+    }
 
     const response = { id: hash, mtimeMs: stat.mtimeMs, durationMs };
 
     if (hash) {
         const vttPath = path.join(
-            THUMBS_DIR,
+            config.THUMBS_DIR,
             hash,
             `${hash}${process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'}`
         );
@@ -354,7 +363,8 @@ async function start() {
                 const rel = getRelById(id);
                 if (!rel) throw new Error('not found');
                 const abs = path.resolve(config.VIDEO_ROOT, rel);
-                if (!abs.startsWith(config.VIDEO_ROOT)) throw new Error('path escape');
+                if (!abs.startsWith(config.VIDEO_ROOT))
+                    throw new Error('path escape');
                 if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
                     throw new Error('missing file');
                 return abs;
@@ -369,7 +379,9 @@ async function start() {
     }
 
     app.listen(config.PORT, config.BIND, () => {
-        logger.info(`📺 Serving ${config.VIDEO_ROOT} at http://${config.BIND}:${config.PORT}`);
+        logger.info(
+            `📺 Serving ${config.VIDEO_ROOT} at http://${config.BIND}:${config.PORT}`
+        );
     });
 }
 

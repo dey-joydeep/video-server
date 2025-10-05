@@ -1,59 +1,67 @@
 <!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Player</title>
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Player</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <!-- Your existing stylesheet -->
+        <link rel="stylesheet" href="./styles.css?v=41" />
 
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <!-- Your existing stylesheet -->
-  <link rel="stylesheet" href="./styles.css?v=41" />
+        <!-- HLS for Chromium/Firefox/Edge; Safari uses native HLS -->
+        <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    </head>
 
-  <!-- HLS for Chromium/Firefox/Edge; Safari uses native HLS -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-</head>
+    <body>
+        <!-- Header consistent with your app header layout (no placeholders) -->
+        <header class="app">
+            <div class="left">
+                <a class="btn" href="./index.html" aria-label="Back to library"
+                    >← Library</a
+                >
+            </div>
+            <div class="center">
+                <h1 class="brand">Player</h1>
+            </div>
+            <div class="right">
+                <!-- (keep empty or add buttons you really use) -->
+            </div>
+        </header>
 
-<body>
-  <!-- Header consistent with your app header layout (no placeholders) -->
-  <header class="app">
-    <div class="left">
-      <a class="btn" href="./index.html" aria-label="Back to library">← Library</a>
-    </div>
-    <div class="center">
-      <h1 class="brand">Player</h1>
-    </div>
-    <div class="right">
-      <!-- (keep empty or add buttons you really use) -->
-    </div>
-  </header>
+        <main class="wrap">
+            <!-- Player area; 16:9 box is handled via your CSS (e.g., .frame16x9) -->
+            <section class="player">
+                <video
+                    id="v"
+                    class="frame16x9"
+                    playsinline
+                    controls
+                    preload="metadata"
+                    disablepictureinpicture
+                    controlsList="noplaybackrate nodownload"
+                    oncontextmenu="return false;"
+                    tabindex="0"
+                ></video>
+                <div class="progress-bar-preview">
+                    <div class="preview-thumb"></div>
+                    <div class="preview-time">00:00</div>
+                </div>
+                <div id="loading" class="loading">Preparing video…</div>
+            </section>
 
-  <main class="wrap">
-    <!-- Player area; 16:9 box is handled via your CSS (e.g., .frame16x9) -->
-    <section class="player">
-      <video id="v" class="frame16x9" playsinline controls preload="metadata" disablepictureinpicture
-        controlsList="noplaybackrate nodownload" oncontextmenu="return false;" tabindex="0">
-      </video>
-      <div class="progress-bar-preview">
-        <div class="preview-thumb"></div>
-        <div class="preview-time">00:00</div>
-      </div>
-      <div id="loading" class="loading">Preparing video…</div>
-    </section>
+            <!-- More videos section (used by your player.js) -->
+            <section id="more" style="margin-top: 16px">
+                <h3>More videos</h3>
+                <div id="moreList" class="grid"></div>
+                <div class="centered">
+                    <button id="moreMore" class="btn">Load more</button>
+                </div>
+            </section>
+        </main>
 
-    <!-- More videos section (used by your player.js) -->
-    <section id="more" style="margin-top:16px">
-      <h3>More videos</h3>
-      <div id="moreList" class="grid"></div>
-      <div class="centered">
-        <button id="moreMore" class="btn">Load more</button>
-      </div>
-    </section>
-  </main>
-
-  <!-- IMPORTANT: your module initializes the session & attaches HLS/native.
+        <!-- IMPORTANT: your module initializes the session & attaches HLS/native.
        Nothing here tries to read `hlsUrl` directly. -->
-  <script type="module" src="./js/player.js?v=41"></script>
-</body>
-
+        <script type="module" src="./js/player.js?v=41"></script>
+    </body>
 </html>

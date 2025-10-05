@@ -3,33 +3,28 @@
 // Keeps a single fixed progress line at the top; prints file logs beneath it.
 // Distinguishes cached (pre-run) vs duplicate (same hash seen earlier this run).
 
-import dotenv from 'dotenv';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
 import { spawn } from 'node:child_process';
 
-import { createLogger } from '../../lib/logger.mjs';
 import { loadIndex, saveIndex } from '../../lib/db.mjs';
 import { walkVideos } from '../../lib/scan.mjs';
 import { hashFile } from '../../lib/hash.mjs';
-import { generateThumb } from '../../lib/ffmpeg.mjs';
 import config from '../../lib/config.mjs';
-
-const logger = createLogger({
-    dirname: config.TOOLS_LOG_DIR,
-    filename: 'sync-%DATE%.log',
-});
 
 function ffprobeDurationMs(filePath) {
     return new Promise((resolve, reject) => {
         const p = spawn(
             config.FFPROBE_PATH,
             [
-                '-v', 'error',
-                '-show_entries', 'format=duration',
-                '-of', 'default=nokey=1:noprint_wrappers=1',
+                '-v',
+                'error',
+                '-show_entries',
+                'format=duration',
+                '-of',
+                'default=nokey=1:noprint_wrappers=1',
                 filePath,
             ],
             { windowsHide: true }
@@ -48,8 +43,6 @@ function ffprobeDurationMs(filePath) {
     });
 }
 
-
-
 // ---- Progress line helpers (keeps one status line at the top) ----
 let _linesPrinted = 0; // number of log lines printed under the status
 
@@ -58,18 +51,14 @@ function printInitialStatus(total) {
     process.stdout.write(line + '\n'); // status occupies line 1
 }
 
-function updateStatus({
-    done,
-    total,
-    dupes,
-    renamed,
-    errors,
-}) {
+function updateStatus({ done, total, dupes, renamed, errors }) {
     const linesToMoveUp = _linesPrinted + 1; // status line + printed logs
     try {
         readline.moveCursor(process.stdout, 0, -linesToMoveUp);
         readline.clearLine(process.stdout, 0);
-    } catch {}
+    } catch {
+        /* Ignored */
+    }
     const percent = Math.floor((done / Math.max(total, 1)) * 100);
     const line =
         `Progress: ${String(percent).padStart(3, ' ')}% (${done}/${total}) | ` +
@@ -77,7 +66,9 @@ function updateStatus({
     process.stdout.write(line + '\n');
     try {
         readline.moveCursor(process.stdout, 0, _linesPrinted);
-    } catch {}
+    } catch {
+        /* Ignored */
+    }
 }
 
 /** Write one or many lines *below* the status, bumping the line count accurately. */
@@ -181,8 +172,14 @@ export async function runSync(opts = {}) {
         }
 
         // Create the dedicated directory for this hash if it's the first time we've seen it
-        if (fileHash && !oldHashToPaths.has(fileHash) && !seenHashFirstRel.has(fileHash)) {
-            fs.mkdirSync(path.join(config.THUMBS_DIR, fileHash), { recursive: true });
+        if (
+            fileHash &&
+            !oldHashToPaths.has(fileHash) &&
+            !seenHashFirstRel.has(fileHash)
+        ) {
+            fs.mkdirSync(path.join(config.THUMBS_DIR, fileHash), {
+                recursive: true,
+            });
         }
 
         // Mark first time we see this content in this run

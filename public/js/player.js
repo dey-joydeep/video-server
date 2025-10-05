@@ -34,14 +34,18 @@ function cleanup() {
     // abort any in-flight session fetch
     try {
         pendingController?.abort();
-    } catch {}
+    } catch {
+        /* Ignored */
+    }
     pendingController = null;
 
     // destroy Hls.js cleanly
     if (hls) {
         try {
             hls.destroy();
-        } catch {}
+        } catch {
+            /* Ignored */
+        }
         hls = null;
     }
 
@@ -51,11 +55,11 @@ function cleanup() {
             video.pause();
             video.removeAttribute('src');
             video.load();
-        } catch {}
+        } catch {
+            /* Ignored */
+        }
     }
 }
-
-// Clean up on tab lifecycle
 window.addEventListener('pagehide', cleanup);
 window.addEventListener('beforeunload', cleanup);
 
@@ -171,12 +175,16 @@ async function play(id) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
                     try {
                         hls.startLoad();
-                    } catch {}
+                    } catch {
+                        /* Ignored */
+                    }
                     break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
                     try {
                         hls.recoverMediaError();
-                    } catch {}
+                    } catch {
+                        /* Ignored */
+                    }
                     break;
                 default:
                     // unrecoverable — reset and notify
@@ -290,7 +298,7 @@ function parseVtt(text) {
                 cues.push({
                     start,
                     end,
-                    url: `/thumbs/${match[1]`,
+                    url: `/thumbs/${match[1]}`,
                     x: parseInt(match[2], 10),
                     y: parseInt(match[3], 10),
                     w: parseInt(match[4], 10),
@@ -305,7 +313,11 @@ function parseVtt(text) {
 function timeToSeconds(timeStr) {
     const parts = timeStr.split(':');
     const seconds = parts.pop();
-    return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(seconds);
+    return (
+        parseInt(parts[0], 10) * 3600 +
+        parseInt(parts[1], 10) * 60 +
+        parseFloat(seconds)
+    );
 }
 
 function secondsToTime(time) {
@@ -321,7 +333,7 @@ function onProgressMouseMove(e) {
     const percent = (e.clientX - rect.left) / rect.width;
     const hoverTime = video.duration * percent;
 
-    const cue = vttCues.find(c => hoverTime >= c.start && hoverTime < c.end);
+    const cue = vttCues.find((c) => hoverTime >= c.start && hoverTime < c.end);
     if (!cue) {
         previewEl.classList.remove('visible');
         return;
@@ -335,7 +347,7 @@ function onProgressMouseMove(e) {
 
     // Position the preview box
     const previewWidth = previewEl.offsetWidth;
-    let previewLeft = e.clientX - rect.left - (previewWidth / 2);
+    let previewLeft = e.clientX - rect.left - previewWidth / 2;
     // Clamp to video bounds
     previewLeft = Math.max(0, Math.min(previewLeft, rect.width - previewWidth));
 
@@ -346,7 +358,6 @@ function onProgressMouseMove(e) {
 function onProgressMouseLeave() {
     previewEl.classList.remove('visible');
 }
-
 
 // --- bootstrap ---
 (async () => {

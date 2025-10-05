@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
-import dotenv from 'dotenv';
 import { loadIndex } from '../../lib/db.mjs';
 import { createLogger } from '../../lib/logger.mjs';
 
@@ -10,12 +9,12 @@ const logger = createLogger({
     filename: 'clips-%DATE%.log',
 });
 
-
-
 // --- Config ---
 const CWD = process.cwd();
 const VIDEO_ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
-const THUMBS_DIR = path.resolve(process.env.THUMBS_DIR || path.join(CWD, 'thumbs'));
+const THUMBS_DIR = path.resolve(
+    process.env.THUMBS_DIR || path.join(CWD, 'thumbs')
+);
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(CWD, 'data'));
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
 const SUFFIX_PREVIEW_CLIP = process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4';
@@ -29,7 +28,9 @@ function run(cmd, args) {
         p.on('close', (code) =>
             code === 0
                 ? resolve()
-                : reject(new Error(`ffmpeg error: ${err.trim() || `exit ${code}`}`))
+                : reject(
+                      new Error(`ffmpeg error: ${err.trim() || `exit ${code}`}`)
+                  )
         );
         p.on('error', (e) => reject(e));
     });
@@ -51,14 +52,18 @@ export async function generateClips() {
     for (const [i, [relPath, videoData]] of videos.entries()) {
         const { hash, durationMs } = videoData;
         if (!hash || !durationMs) {
-            logger.warn(`[CLIP] Skipping video with no hash or duration: ${relPath}`);
+            logger.warn(
+                `[CLIP] Skipping video with no hash or duration: ${relPath}`
+            );
             continue;
         }
 
         const assetDir = path.join(THUMBS_DIR, hash);
         const clipPath = path.join(assetDir, `${hash}${SUFFIX_PREVIEW_CLIP}`);
 
-        logger.info(`[CLIP] [${i + 1}/${videos.length}] Processing: ${relPath}`);
+        logger.info(
+            `[CLIP] [${i + 1}/${videos.length}] Processing: ${relPath}`
+        );
 
         if (fs.existsSync(clipPath)) {
             logger.info(`[CLIP] Preview clip already exists. Skipping.`);
@@ -87,24 +92,33 @@ export async function generateClips() {
             logger.info(`[CLIP] Generating ${clipDuration}s clip...`);
             const ffmpegArgs = [
                 // Use -ss AFTER the input for accurate seeking
-                '-i', videoFullPath,
-                '-ss', startTime.toFixed(2),
-                '-t', clipDuration,
-                '-c:v', 'libx264',
-                '-preset', 'veryfast',
-                '-crf', '28',
+                '-i',
+                videoFullPath,
+                '-ss',
+                startTime.toFixed(2),
+                '-t',
+                clipDuration,
+                '-c:v',
+                'libx264',
+                '-preset',
+                'veryfast',
+                '-crf',
+                '28',
                 '-an', // No audio
                 // Combine all video filters into one -vf flag
-                '-vf', `fps=24,setpts=PTS-STARTPTS,scale=480:-2`,
-                '-movflags', '+faststart',
-                clipPath
+                '-vf',
+                `fps=24,setpts=PTS-STARTPTS,scale=480:-2`,
+                '-movflags',
+                '+faststart',
+                clipPath,
             ];
             await run(FFMPEG_PATH, ffmpegArgs);
             logger.info(`[CLIP] Preview clip saved to ${clipPath}`);
         } catch (error) {
-            logger.error(`[CLIP] Failed to generate clip for ${relPath}: ${error.message}`);
+            logger.error(
+                `[CLIP] Failed to generate clip for ${relPath}: ${error.message}`
+            );
         }
     }
     logger.info('[CLIP] Preview clip generation process finished.');
 }
-
