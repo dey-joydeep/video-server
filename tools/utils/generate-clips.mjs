@@ -10,7 +10,7 @@ const logger = createLogger({
     filename: 'clips-%DATE%.log',
 });
 
-dotenv.config();
+
 
 // --- Config ---
 const CWD = process.cwd();

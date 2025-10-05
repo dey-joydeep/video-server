@@ -1,4 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { createLogger } from '../lib/logger.mjs';
+
 import { runSync } from './utils/sync.mjs';
 import { generateThumbnails } from './utils/generate-thumbnails.mjs';
 import { generateSprites } from './utils/sprite-generator.mjs';

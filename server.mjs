@@ -1,43 +1,29 @@
 // server.mjs — robust startup + HLS resolver via live scan (updated)
 // (keeps your routes; integrates HLS exactly once at startup)
 
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import mime from 'mime';
-import dotenv from 'dotenv';
-import morgan from 'morgan';
-import { fileURLToPath } from 'url';
-import { spawn } from 'node:child_process';
-import { createLogger } from './lib/logger.mjs'; // HLS module
+import config from './lib/config.mjs';
+import { createLogger } from './lib/logger.mjs';
 
 const logger = createLogger({
-    dirname: 'logs',
+    dirname: config.LOGS_DIR,
     filename: 'video_server_%DATE%.log',
 });
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 
 const app = express();
 
-const CWD = process.cwd();
-const ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
-const PORT = parseInt(process.env.PORT || '8765', 10);
-const BIND = process.env.BIND || '0.0.0.0';
-
-const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(CWD, 'data'));
-const DB_PATH = path.join(DATA_DIR, 'thumbs-index.json'); // produced by tools/sync.mjs
-const PUBLIC_DIR = path.join(CWD, 'public');
-const THUMBS_DIR = path.resolve(
-    process.env.THUMBS_DIR || path.join(CWD, 'thumbs')
-);
+const DB_PATH = path.join(config.DATA_DIR, 'thumbs-index.json'); // produced by tools/sync.mjs
+const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
 const VIDEO_EXTS = new Set(['.mp4', '.mkv', '.webm', '.mov', '.m4v', '.avi']);
 
 // ---------- logging ----------
-app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
+app.use(
+    morgan('combined', {
+        stream: { write: (message) => logger.info(message.trim()) },
+    })
+);
 
 // ---------- basic hardening ----------
 app.disable('x-powered-by');
@@ -68,16 +54,15 @@ app.get('/watch', (_req, res) =>
 
 // Serve favicon with explicit cache headers
 app.get('/favicon.ico', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'favicon.ico'), {
-    headers: { 'Cache-Control': 'public, max-age=86400' }
-  });
+    res.sendFile(path.join(PUBLIC_DIR, 'favicon.ico'), {
+        headers: { 'Cache-Control': 'public, max-age=86400' },
+    });
 });
-
 
 app.use(express.static(PUBLIC_DIR, { maxAge: '7d', immutable: true }));
 app.use(
     '/thumbs',
-    express.static(THUMBS_DIR, { maxAge: '7d', immutable: true })
+    express.static(config.THUMBS_DIR, { maxAge: '7d', immutable: true })
 );
 
 // ---------- helpers: DB + scan ----------
@@ -145,7 +130,7 @@ function listAllVideos() {
             if (!VIDEO_EXTS.has(ext)) continue;
 
             const stat = fs.statSync(full);
-            const rel = path.relative(ROOT, full).replaceAll('\\', '/');
+            const rel = path.relative(config.VIDEO_ROOT, full).replaceAll('\\', '/');
             const rec = byRel[rel] || {};
             out.push({
                 id: rec.hash || null,
@@ -157,7 +142,7 @@ function listAllVideos() {
             });
         }
     };
-    walk(ROOT);
+    walk(config.VIDEO_ROOT);
 
     out.sort((a, b) =>
         a.name.localeCompare(b.name, undefined, { numeric: true })
@@ -224,15 +209,25 @@ app.get('/api/list', (req, res) => {
             if (id) {
                 const assetDir = path.join(THUMBS_DIR, id);
                 // Dynamically add thumb
-                const thumbPath = path.join(assetDir, `${id}${process.env.SUFFIX_THUMB || '_thumb.jpg'}`);
+                const thumbPath = path.join(
+                    assetDir,
+                    `${id}${process.env.SUFFIX_THUMB || '_thumb.jpg'}`
+                );
                 if (fs.existsSync(thumbPath)) {
-                    item.thumb = `${id}/${id}${process.env.SUFFIX_THUMB || '_thumb.jpg'}`;
+                    item.thumb = `${id}/${id}${
+                        process.env.SUFFIX_THUMB || '_thumb.jpg'
+                    }`;
                 }
 
                 // Dynamically add preview clip
-                const clipPath = path.join(assetDir, `${id}${process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'}`);
+                const clipPath = path.join(
+                    assetDir,
+                    `${id}${process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'}`
+                );
                 if (fs.existsSync(clipPath)) {
-                    item.previewClip = `${id}/${id}${process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'}`;
+                    item.previewClip = `${id}/${id}${
+                        process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'
+                    }`;
                 }
             }
             return item;
@@ -245,10 +240,8 @@ app.get('/v/:id', (req, res) => {
     const id = req.params.id;
     const { byId } = loadIndex();
     const rel = byId[id];
-    if (!rel) return res.sendStatus(404);
-
-    const abs = path.resolve(path.join(ROOT, rel));
-    if (!abs.startsWith(ROOT)) return res.sendStatus(403);
+    const abs = path.resolve(path.join(config.VIDEO_ROOT, rel));
+    if (!abs.startsWith(config.VIDEO_ROOT)) return res.sendStatus(403);
     if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
         return res.sendStatus(404);
 
@@ -304,8 +297,8 @@ app.get('/api/meta', async (req, res) => {
 
     if (!rel) return res.status(400).json({ error: 'missing id' });
 
-    const abs = path.resolve(path.join(ROOT, rel));
-    if (!abs.startsWith(ROOT)) return res.sendStatus(403);
+    const abs = path.resolve(path.join(config.VIDEO_ROOT, rel));
+    if (!abs.startsWith(config.VIDEO_ROOT)) return res.sendStatus(403);
     if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
         return res.sendStatus(404);
 
@@ -318,9 +311,15 @@ app.get('/api/meta', async (req, res) => {
     const response = { id: hash, mtimeMs: stat.mtimeMs, durationMs };
 
     if (hash) {
-        const vttPath = path.join(THUMBS_DIR, hash, `${hash}${process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'}`);
+        const vttPath = path.join(
+            THUMBS_DIR,
+            hash,
+            `${hash}${process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'}`
+        );
         if (fs.existsSync(vttPath)) {
-            response.sprite = `/thumbs/${hash}/${hash}${process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'}`;
+            response.sprite = `/thumbs/${hash}/${hash}${
+                process.env.SUFFIX_SPRITE_VTT || '_sprite.vtt'
+            }`;
         }
     }
 
@@ -342,21 +341,20 @@ async function start() {
 
     try {
         await setupHls(app, {
-            hlsDir: process.env.HLS_DIR || path.join(CWD, '.hls'),
-            segSec: parseInt(process.env.HLS_SEG_SEC || '4', 10),
-            tokenTtlSec: parseInt(process.env.TOKEN_TTL_SEC || '900', 10),
-            pinIp: String(process.env.TOKEN_PIN_IP || 'true') === 'true',
-            ffmpegPath: process.env.FFMPEG || 'ffmpeg',
-            // pass through ffprobe (optional) via env if you need a custom path
-            ffprobePath: process.env.FFPROBE_PATH || 'ffprobe',
+            hlsDir: config.HLS_DIR,
+            segSec: config.HLS_SEG_SEC,
+            tokenTtlSec: config.TOKEN_TTL_SEC,
+            pinIp: config.TOKEN_PIN_IP,
+            ffmpegPath: config.FFMPEG_PATH,
+            ffprobePath: config.FFPROBE_PATH,
             // allow forcing transcode for testing
             forceTranscode:
                 String(process.env.HLS_FORCE_TRANSCODE || '0') === '1',
             resolveFile: async (id) => {
                 const rel = getRelById(id);
                 if (!rel) throw new Error('not found');
-                const abs = path.resolve(ROOT, rel);
-                if (!abs.startsWith(ROOT)) throw new Error('path escape');
+                const abs = path.resolve(config.VIDEO_ROOT, rel);
+                if (!abs.startsWith(config.VIDEO_ROOT)) throw new Error('path escape');
                 if (!fs.existsSync(abs) || !fs.statSync(abs).isFile())
                     throw new Error('missing file');
                 return abs;
@@ -370,8 +368,8 @@ async function start() {
         logger.error('HLS init failed:', e);
     }
 
-    app.listen(PORT, BIND, () => {
-        logger.info(`📺 Serving ${ROOT} at http://${BIND}:${PORT}`);
+    app.listen(config.PORT, config.BIND, () => {
+        logger.info(`📺 Serving ${config.VIDEO_ROOT} at http://${config.BIND}:${config.PORT}`);
     });
 }
 

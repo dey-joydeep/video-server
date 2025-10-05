@@ -15,18 +15,17 @@ import { loadIndex, saveIndex } from '../../lib/db.mjs';
 import { walkVideos } from '../../lib/scan.mjs';
 import { hashFile } from '../../lib/hash.mjs';
 import { generateThumb } from '../../lib/ffmpeg.mjs';
+import config from '../../lib/config.mjs';
 
 const logger = createLogger({
-    dirname: 'logs/tools-log',
+    dirname: config.TOOLS_LOG_DIR,
     filename: 'sync-%DATE%.log',
 });
-
-const FFPROBE_PATH = process.env.FFPROBE_PATH || 'ffprobe';
 
 function ffprobeDurationMs(filePath) {
     return new Promise((resolve, reject) => {
         const p = spawn(
-            FFPROBE_PATH,
+            config.FFPROBE_PATH,
             [
                 '-v', 'error',
                 '-show_entries', 'format=duration',
@@ -49,7 +48,7 @@ function ffprobeDurationMs(filePath) {
     });
 }
 
-dotenv.config();
+
 
 // ---- Progress line helpers (keeps one status line at the top) ----
 let _linesPrinted = 0; // number of log lines printed under the status
@@ -95,28 +94,13 @@ function logLine(s) {
 }
 
 export async function runSync(opts = {}) {
-    const VIDEO_ROOT = path.resolve(
-        opts.VIDEO_ROOT || process.env.VIDEO_ROOT || ''
-    );
+    const VIDEO_ROOT = opts.VIDEO_ROOT || config.VIDEO_ROOT;
     if (!VIDEO_ROOT) throw new Error('VIDEO_ROOT not set');
 
-    const DATA_DIR = path.resolve(
-        opts.DATA_DIR ||
-            process.env.DATA_DIR ||
-            path.join(process.cwd(), 'data')
-    );
-    const THUMBS_DIR = path.resolve(
-        opts.THUMBS_DIR ||
-            process.env.THUMBS_DIR ||
-            path.join(process.cwd(), 'thumbs')
-    );
-    const THUMB_WIDTH = parseInt(process.env.THUMB_WIDTH || '320', 10);
-    const THUMB_AT_SECONDS = parseFloat(process.env.THUMB_AT_SECONDS || '3');
+    fs.mkdirSync(config.DATA_DIR, { recursive: true });
+    fs.mkdirSync(config.THUMBS_DIR, { recursive: true });
 
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.mkdirSync(THUMBS_DIR, { recursive: true });
-
-    const db = loadIndex(DATA_DIR, VIDEO_ROOT);
+    const db = loadIndex(config.DATA_DIR, VIDEO_ROOT);
     const oldFiles = db.files || {};
 
     // ---- Pre-scan (stable order) so we know totals for progress
@@ -198,7 +182,7 @@ export async function runSync(opts = {}) {
 
         // Create the dedicated directory for this hash if it's the first time we've seen it
         if (fileHash && !oldHashToPaths.has(fileHash) && !seenHashFirstRel.has(fileHash)) {
-            fs.mkdirSync(path.join(THUMBS_DIR, fileHash), { recursive: true });
+            fs.mkdirSync(path.join(config.THUMBS_DIR, fileHash), { recursive: true });
         }
 
         // Mark first time we see this content in this run
@@ -264,7 +248,7 @@ export async function runSync(opts = {}) {
     }
 
     db.files = oldFiles;
-    saveIndex(DATA_DIR, db);
+    saveIndex(config.DATA_DIR, db);
 
     // Final status refresh and summary
     updateStatus({

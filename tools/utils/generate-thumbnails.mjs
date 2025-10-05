@@ -1,28 +1,18 @@
-import dotenv from 'dotenv';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createLogger } from '../../lib/logger.mjs';
 import { loadIndex } from '../../lib/db.mjs';
 import { generateThumb } from '../../lib/ffmpeg.mjs';
-
-dotenv.config();
+import config from '../../lib/config.mjs';
 
 const logger = createLogger({
-    dirname: 'logs/tools-log',
+    dirname: config.TOOLS_LOG_DIR,
     filename: 'thumbnails-%DATE%.log',
 });
 
-// --- Config ---
-const CWD = process.cwd();
-const VIDEO_ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
-const THUMBS_DIR = path.resolve(process.env.THUMBS_DIR || path.join(CWD, 'thumbs'));
-const SUFFIX_THUMB = process.env.SUFFIX_THUMB || '_thumb.jpg';
-const THUMB_WIDTH = parseInt(process.env.THUMB_WIDTH || '320', 10);
-const THUMB_AT_SECONDS = parseFloat(process.env.THUMB_AT_SECONDS || '3');
-
 export async function generateThumbnails() {
     logger.info('[THUMB] Starting thumbnail generation process...');
-    const db = loadIndex(path.join(CWD, 'data'), VIDEO_ROOT);
+    const db = loadIndex(config.DATA_DIR, config.VIDEO_ROOT);
     const videos = Object.entries(db.files);
 
     if (videos.length === 0) {
@@ -39,8 +29,8 @@ export async function generateThumbnails() {
             continue;
         }
 
-        const thumbDir = path.join(THUMBS_DIR, hash);
-        const thumbPath = path.join(thumbDir, `${hash}${SUFFIX_THUMB}`);
+        const thumbDir = path.join(config.THUMBS_DIR, hash);
+        const thumbPath = path.join(thumbDir, `${hash}${config.SUFFIX_THUMB}`);
 
         if (fs.existsSync(thumbPath)) {
             continue; // Skip if thumb already exists
@@ -48,14 +38,14 @@ export async function generateThumbnails() {
 
         logger.info(`[THUMB] [${i + 1}/${videos.length}] Generating for: ${relPath}`);
 
-        const videoFullPath = path.join(VIDEO_ROOT, relPath);
+        const videoFullPath = path.join(config.VIDEO_ROOT, relPath);
 
         try {
             await generateThumb({
                 filePath: videoFullPath,
                 outPath: thumbPath, // Pass the full output path directly
-                width: THUMB_WIDTH,
-                atSec: THUMB_AT_SECONDS,
+                width: config.THUMB_WIDTH,
+                atSec: config.THUMB_AT_SECONDS,
             });
         } catch (error) {
             logger.error(`[THUMB] Failed to generate for ${relPath}: ${error.message}`);
