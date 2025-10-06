@@ -5,10 +5,11 @@ import sharp from 'sharp';
 import { loadIndex } from '../../lib/db.mjs';
 import { createLogger } from '../../lib/logger.mjs';
 import config from '../../lib/config.mjs';
+import { LOGGING } from '../../lib/constants.mjs';
 
 const logger = createLogger({
     dirname: config.TOOLS_LOG_DIR,
-    filename: 'sprite-generator-%DATE%.log',
+    filename: `${LOGGING.TOOL_LOG_FILENAME_PREFIXES.GEN_SPRITE}%DATE%.log`,
 });
 
 // --- Helpers ---

@@ -3,10 +3,12 @@ import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 import { loadIndex } from '../../lib/db.mjs';
 import { createLogger } from '../../lib/logger.mjs';
+import config from '../../lib/config.mjs';
+import { LOGGING } from '../../lib/constants.mjs';
 
 const logger = createLogger({
-    dirname: 'logs/tools-log',
-    filename: 'clips-%DATE%.log',
+    dirname: config.TOOLS_LOG_DIR,
+    filename: `${LOGGING.TOOL_LOG_FILENAME_PREFIXES.GEN_CLIPS}%DATE%.log`,
 });
 
 // --- Config ---

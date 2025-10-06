@@ -10,8 +10,11 @@ export const state = {
     items: [],
     q: '',
     sort: 'name-asc',
-    prefs: { preview: false, volume: 0.0 },
+    prefs: { preview: true, volume: 0.0 }, // Initialize with a temporary default
 };
+
+// Set the volume after state.isMobile is defined
+state.prefs.volume = state.isMobile ? 0.0 : 0.5;
 
 export function loadPrefs() {
     try {

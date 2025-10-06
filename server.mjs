@@ -8,20 +8,21 @@ import mime from 'mime';
 import morgan from 'morgan';
 import { spawn } from 'node:child_process';
 import config from './lib/config.mjs';
-import { setupHls } from './lib/hls.mjs';
+import { init as initHls, setupHls } from './lib/hls.mjs';
 import { createLogger } from './lib/logger.mjs';
+import { SUPPORTED_VIDEO_EXTENSIONS, LOGGING } from './lib/constants.mjs';
 
 const logger = createLogger({
     dirname: config.LOGS_DIR,
-    filename: 'video_server_%DATE%.log',
+    filename: `${LOGGING.ROOT_LOG_FILENAME_PREFIX}%DATE%.log`,
 });
+
+initHls({ logger });
 
 const app = express();
 
 const DB_PATH = path.join(config.DATA_DIR, 'thumbs-index.json'); // produced by tools/sync.mjs
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
-
-const VIDEO_EXTS = new Set(['.mp4', '.mkv', '.webm', '.mov', '.m4v', '.avi']);
 
 // ---------- logging ----------
 app.use(
@@ -38,33 +39,53 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
     logger.error('EXPRESS ERROR:', err);
     res.status(500).json({ error: 'server error' });
 });
 
 // HTML (no-cache for shell pages)
-app.get('/', (_req, res) =>
-    res.sendFile(path.join(PUBLIC_DIR, 'index.html'), {
-        headers: { 'Cache-Control': 'no-store' },
-    })
-);
-app.get('/watch', (_req, res) =>
-    res.sendFile(path.join(PUBLIC_DIR, 'player.html'), {
-        headers: { 'Cache-Control': 'no-store' },
-    })
-);
+function serveHtml(res, fileName) {
+    const filePath = path.join(PUBLIC_DIR, fileName);
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (config.isProduction) {
+        try {
+            let html = fs.readFileSync(filePath, 'utf8');
+            // In prod, rewrite asset paths to point to minified versions in /dist
+            html = html
+                .replace('/styles.css', '/dist/styles.css')
+                .replace('/js/main.js', '/dist/main.min.js')
+                .replace('/js/player.js', '/dist/player.min.js');
+            res.send(html);
+        } catch (e) {
+            logger.error(`Failed to serve modified HTML for ${fileName}`, e);
+            res.status(500).send('Error processing HTML file.');
+        }
+    } else {
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                logger.error(`Failed to send file: ${filePath}`, err);
+            }
+        });
+    }
+}
+
+app.get('/', (_req, res) => serveHtml(res, 'index.html'));
+app.get('/watch', (_req, res) => serveHtml(res, 'player.html'));
 
 // Static assets
-
-// Serve favicon with explicit cache headers
-app.get('/favicon.ico', (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'favicon.ico'), {
-        headers: { 'Cache-Control': 'public, max-age=86400' },
-    });
-});
-
-app.use(express.static(PUBLIC_DIR, { maxAge: '7d', immutable: true }));
+if (config.isProduction) {
+    // In prod, serve the pre-built minified assets from /dist
+    app.use(
+        '/dist',
+        express.static(path.join(PUBLIC_DIR, 'dist'), {
+            maxAge: '1y',
+            immutable: true,
+        })
+    );
+}
+app.use(express.static(PUBLIC_DIR, { maxAge: '7d' }));
 app.use(
     '/thumbs',
     express.static(config.THUMBS_DIR, { maxAge: '7d', immutable: true })
@@ -132,7 +153,7 @@ function listAllVideos() {
                 continue;
             }
             const ext = path.extname(ent.name).toLowerCase();
-            if (!VIDEO_EXTS.has(ext)) continue;
+            if (!SUPPORTED_VIDEO_EXTENSIONS.has(ext)) continue;
 
             const stat = fs.statSync(full);
             const rel = path
@@ -232,7 +253,7 @@ app.get('/api/list', (req, res) => {
                     `${id}${process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'}`
                 );
                 if (fs.existsSync(clipPath)) {
-                    item.previewClip = `${id}/${id}${
+                    item.previewClip = `/thumbs/${id}/${id}${
                         process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4'
                     }`;
                 }

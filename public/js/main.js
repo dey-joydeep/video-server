@@ -60,7 +60,8 @@ function render() {
 function bindCards() {
     listEl.querySelectorAll('.card').forEach((card) => {
         const id = card.dataset.id;
-        const previewClip = state.items.find((it) => it.id === id)?.previewClip;
+        const videoItem = state.items.find((it) => it.id === id);
+        const previewClip = videoItem?.previewClip;
 
         let previewTimer = null;
         let videoEl = null;
@@ -77,10 +78,13 @@ function bindCards() {
             videoEl.muted = true;
             videoEl.loop = true;
             videoEl.playsInline = true;
-            videoEl.autoplay = true;
 
             img.replaceWith(videoEl);
-            videoEl.play().catch((e) => console.warn('Preview play failed', e));
+
+            videoEl.addEventListener('canplaythrough', () => {
+                videoEl.currentTime = 0; // Ensure playback starts from the beginning
+                videoEl.play().catch((e) => console.warn('Preview play failed', e));
+            }, { once: true });
         };
 
         const cancelPreview = () => {
@@ -89,7 +93,7 @@ function bindCards() {
             if (videoEl) {
                 videoEl.pause();
                 const img = new Image();
-                img.src = `/thumbs/${id}.jpg`;
+                img.src = `/thumbs/${videoItem.thumb}`;
                 img.classList.add('thumb');
                 videoEl.replaceWith(img);
                 videoEl = null;
