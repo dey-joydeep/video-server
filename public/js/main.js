@@ -78,13 +78,23 @@ function bindCards() {
             videoEl.muted = true;
             videoEl.loop = true;
             videoEl.playsInline = true;
+            videoEl.preload = 'auto';
+            videoEl.autoplay = true;
+            videoEl.disableRemotePlayback = true;
 
             img.replaceWith(videoEl);
 
-            videoEl.addEventListener('canplaythrough', () => {
-                videoEl.currentTime = 0; // Ensure playback starts from the beginning
-                videoEl.play().catch((e) => console.warn('Preview play failed', e));
-            }, { once: true });
+            videoEl.addEventListener(
+                'loadeddata',
+                async () => {
+                    try {
+                        await videoEl.play();
+                    } catch (e) {
+                        console.warn('Preview play failed', e);
+                    }
+                },
+                { once: true }
+            );
         };
 
         const cancelPreview = () => {
