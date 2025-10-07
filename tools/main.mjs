@@ -13,6 +13,10 @@ const logger = createLogger({
     filename: 'main-%DATE%.log',
 });
 
+/**
+ * Main orchestration function for the video processing pipeline.
+ * It performs metadata synchronization, then generates thumbnails, sprites, and clips in parallel.
+ */
 async function main() {
     logger.info('[MAIN] Starting full processing pipeline...');
     const startTime = Date.now();

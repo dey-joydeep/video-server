@@ -12,16 +12,28 @@ const logger = createLogger({
 });
 
 // --- Config ---
+/** @constant {string} CWD - The current working directory. */
 const CWD = process.cwd();
+/** @constant {string} VIDEO_ROOT - The absolute path to the root directory of the video library. */
 const VIDEO_ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
+/** @constant {string} THUMBS_DIR - The absolute path to the directory where thumbnails and clips are stored. */
 const THUMBS_DIR = path.resolve(
     process.env.THUMBS_DIR || path.join(CWD, 'thumbs')
 );
+/** @constant {string} DATA_DIR - The absolute path to the directory where application data (e.g., index) is stored. */
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(CWD, 'data'));
+/** @constant {string} FFMPEG_PATH - The path to the ffmpeg executable. */
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
+/** @constant {string} SUFFIX_PREVIEW_CLIP - The filename suffix for generated preview clips. */
 const SUFFIX_PREVIEW_CLIP = process.env.SUFFIX_PREVIEW_CLIP || '_preview.mp4';
 
 // --- Helper to run a process ---
+/**
+ * Executes a shell command and captures its stderr for error reporting.
+ * @param {string} cmd - The command to execute (e.g., 'ffmpeg').
+ * @param {string[]} args - An array of arguments for the command.
+ * @returns {Promise<void>} A promise that resolves if the command succeeds, or rejects with an error if it fails.
+ */
 function run(cmd, args) {
     return new Promise((resolve, reject) => {
         const p = spawn(cmd, args, { windowsHide: true });
@@ -39,6 +51,10 @@ function run(cmd, args) {
 }
 
 // --- Main generation logic ---
+/**
+ * Generates short preview clips for all videos in the index.
+ * Clips are generated using ffmpeg with specific parameters for web-friendly playback.
+ */
 export async function generateClips() {
     logger.info('[CLIP] Starting preview clip generation process...');
     const db = loadIndex(DATA_DIR, VIDEO_ROOT);
@@ -93,37 +109,36 @@ export async function generateClips() {
         try {
             logger.info(`[CLIP] Generating ${clipDuration}s clip...`);
             const ffmpegArgs = [
-                // Use -ss AFTER the input for accurate seeking
-                '-i',
-                videoFullPath,
-                '-ss',
-                startTime.toFixed(2),
-                '-t',
-                clipDuration,
-                '-c:v',
-                'libx264',
-                '-preset',
-                'veryfast',
-                '-crf',
-                '24',
-                '-g',
-                '12',
-                '-keyint_min',
-                '12',
-                '-sc_threshold',
-                '0',
-                '-pix_fmt',
-                'yuv420p',
-                '-profile:v',
-                'high',
-                '-level',
-                '4.0',
-                '-an', // No audio
-                '-vf',
-                `fps=24,setpts=PTS-STARTPTS,scale=480:-2`,
-                '-movflags',
-                '+faststart',
-                clipPath,
+                '-i', // Specify the input file
+                videoFullPath, // The path to the source video file
+                '-ss', // Seek to a specific position in the input file
+                startTime.toFixed(2), // The time (in seconds) to start the clip
+                '-t', // Set the duration of the output clip
+                clipDuration, // The length of the clip in seconds
+                '-c:v', // Set the video codec
+                'libx264', // Use the H.264 video encoder (widely compatible)
+                '-preset', // Set the encoding speed/compression ratio
+                'veryfast', // A fast preset for quicker encoding, good for previews
+                '-crf', // Set the Constant Rate Factor for video quality
+                '24', // CRF value (lower means higher quality, larger file size; 24 is a good balance)
+                '-g', // Set the Group of Pictures (GOP) size
+                '12', // Keyframe interval (e.g., 12 frames for 0.5-second interval at 24fps)
+                '-keyint_min', // Minimum keyframe interval
+                '12', // Same as GOP size for consistent keyframes
+                '-sc_threshold', // Scene change detection threshold
+                '0', // Disable scene change detection for fixed keyframe intervals
+                '-pix_fmt', // Set the pixel format
+                'yuv420p', // YUV 4:2:0 pixel format (most compatible for web)
+                '-profile:v', // Set the H.264 profile for compatibility
+                'high', // High profile for broad compatibility
+                '-level', // Set the H.264 level for compatibility
+                '4.0', // Level 4.0 for broad compatibility
+                '-an', // Disable audio (previews are typically silent)
+                '-vf', // Apply video filters
+                `fps=24,setpts=PTS-STARTPTS,scale=480:-2`, // Filters: force 24fps, reset timestamps, scale video width to 480px (height auto)
+                '-movflags', // Special flags for the MP4 container
+                '+faststart', // Move metadata to the beginning for faster web playback
+                clipPath, // The output file path (where the preview clip will be saved)
             ];
             await run(FFMPEG_PATH, ffmpegArgs);
             logger.info(`[CLIP] Preview clip saved to ${clipPath}`);

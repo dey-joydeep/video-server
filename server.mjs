@@ -19,10 +19,13 @@ const logger = createLogger({
 
 initHls({ logger });
 
-const app = express();
-
+/** @constant {string} DB_PATH - The absolute path to the JSON database file. */
 const DB_PATH = path.join(config.DATA_DIR, 'thumbs-index.json'); // produced by tools/sync.mjs
+/** @constant {string} PUBLIC_DIR - The absolute path to the public static assets directory. */
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
+
+/** @constant {Express} app - The Express application instance. */
+const app = express();
 
 // ---------- logging ----------
 app.use(
@@ -45,6 +48,11 @@ app.use((err, req, res, next) => {
 });
 
 // HTML (no-cache for shell pages)
+/**
+ * Serves an HTML file, optionally rewriting asset paths for production builds.
+ * @param {object} res - The Express response object.
+ * @param {string} fileName - The name of the HTML file to serve (e.g., 'index.html').
+ */
 function serveHtml(res, fileName) {
     const filePath = path.join(PUBLIC_DIR, fileName);
     res.setHeader('Cache-Control', 'no-store');
@@ -92,6 +100,12 @@ app.use(
 );
 
 // ---------- helpers: DB + scan ----------
+/**
+ * Reads and parses a JSON file safely, returning a fallback value on error.
+ * @param {string} p - The path to the JSON file.
+ * @param {any} fallback - The value to return if the file cannot be read or parsed.
+ * @returns {any} The parsed JSON data or the fallback value.
+ */
 function readJsonSafe(p, fallback) {
     try {
         return JSON.parse(fs.readFileSync(p, 'utf8'));
@@ -104,6 +118,10 @@ function readJsonSafe(p, fallback) {
  * Accept either:
  * A) { files: { "<rel>": { hash, thumb, durationMs, ... }, ... } }
  * B) { items: [ { id/hash, rel/path, name, durationMs, thumb, ... }, ... ] }
+ */
+/**
+ * Loads the video index, handling different data shapes.
+ * @returns {{byRel: object, byId: object}} An object containing video data indexed by relative path and by ID.
  */
 function loadIndex() {
     const raw = readJsonSafe(DB_PATH, {});
@@ -136,11 +154,20 @@ function loadIndex() {
     return { byRel, byId };
 }
 
+/**
+ * Removes the file extension from a filename.
+ * @param {string} name - The filename.
+ * @returns {string} The filename without its extension.
+ */
 function stripExt(name) {
     const i = name.lastIndexOf('.');
     return i > 0 ? name.slice(0, i) : name;
 }
 
+/**
+ * Lists all video files in the configured VIDEO_ROOT, enriching them with metadata from the index.
+ * @returns {Array<object>} An array of video objects with their metadata.
+ */
 function listAllVideos() {
     const { byRel } = loadIndex();
     const out = [];
@@ -179,6 +206,11 @@ function listAllVideos() {
 }
 
 // ---------- ffprobe helper ----------
+/**
+ * Uses ffprobe to get the duration of a video file in milliseconds.
+ * @param {string} filePath - The path to the video file.
+ * @returns {Promise<number|null>} A promise that resolves with the duration in milliseconds, or null if it cannot be determined.
+ */
 function ffprobeDurationMs(filePath) {
     return new Promise((resolve) => {
         const p = spawn(
@@ -360,8 +392,17 @@ app.get('/api/meta', async (req, res) => {
 app.get('/healthz', (_req, res) => res.type('text').send('ok'));
 
 // ---------- deterministic startup: register HLS, then listen ----------
+/**
+ * Initializes and starts the Express server.
+ * Sets up HLS streaming and listens for incoming requests.
+ */
 async function start() {
     // Resolve id -> rel using the *current filesystem view*
+    /**
+     * Resolves a video ID to its relative file path using the current filesystem view.
+     * @param {string} id - The ID (hash) of the video.
+     * @returns {string|null} The relative path of the video, or null if not found.
+     */
     function getRelById(id) {
         if (!id) return null;
         const arr = listAllVideos();

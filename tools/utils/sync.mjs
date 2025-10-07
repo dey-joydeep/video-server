@@ -14,6 +14,11 @@ import { walkVideos } from '../../lib/scan.mjs';
 import { hashFile } from '../../lib/hash.mjs';
 import config from '../../lib/config.mjs';
 
+/**
+ * Uses ffprobe to get the duration of a video file in milliseconds.
+ * @param {string} filePath - The path to the video file.
+ * @returns {Promise<number|null>} A promise that resolves with the duration in milliseconds, or null if it cannot be determined.
+ */
 function ffprobeDurationMs(filePath) {
     return new Promise((resolve, reject) => {
         const p = spawn(
@@ -46,11 +51,26 @@ function ffprobeDurationMs(filePath) {
 // ---- Progress line helpers (keeps one status line at the top) ----
 let _linesPrinted = 0; // number of log lines printed under the status
 
+/** @constant {number} _linesPrinted - Tracks the number of log lines printed below the status line. */
+
+/**
+ * Prints the initial status line for the sync process.
+ * @param {number} total - The total number of files to process.
+ */
 function printInitialStatus(total) {
     const line = `Progress: 0% (0/${total}) | dup:0 renamed:0 errors:0`;
     process.stdout.write(line + '\n'); // status occupies line 1
 }
 
+/**
+ * Updates the status line in the console with current progress.
+ * @param {object} status - The current status object.
+ * @param {number} status.done - Number of files processed.
+ * @param {number} status.total - Total number of files to process.
+ * @param {number} status.dupes - Number of duplicate files found.
+ * @param {number} status.renamed - Number of renamed files detected.
+ * @param {number} status.errors - Number of errors encountered.
+ */
 function updateStatus({ done, total, dupes, renamed, errors }) {
     const linesToMoveUp = _linesPrinted + 1; // status line + printed logs
     try {
@@ -72,6 +92,10 @@ function updateStatus({ done, total, dupes, renamed, errors }) {
 }
 
 /** Write one or many lines *below* the status, bumping the line count accurately. */
+/**
+ * Writes one or many lines below the status line, updating the line count.
+ * @param {string} s - The string to log.
+ */
 function logLine(s) {
     const text = String(s ?? '')
         .replace(/\r\n/g, '\n')
@@ -84,6 +108,14 @@ function logLine(s) {
     }
 }
 
+/**
+ * Runs the incremental synchronization process for the video library.
+ * Scans for new/changed files, detects renames, and updates the JSON index.
+ * @param {object} [opts={}] - Options for the sync process.
+ * @param {string} [opts.VIDEO_ROOT] - Override the video root directory from config.
+ * @returns {Promise<object>} A promise that resolves with the updated database object.
+ * @throws {Error} If VIDEO_ROOT is not set.
+ */
 export async function runSync(opts = {}) {
     const VIDEO_ROOT = opts.VIDEO_ROOT || config.VIDEO_ROOT;
     if (!VIDEO_ROOT) throw new Error('VIDEO_ROOT not set');

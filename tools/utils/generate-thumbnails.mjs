@@ -11,6 +11,10 @@ const logger = createLogger({
     filename: `${LOGGING.TOOL_LOG_FILENAME_PREFIXES.GEN_THUMBS}%DATE%.log`,
 });
 
+/**
+ * Generates thumbnails for all videos in the index.
+ * It skips videos that already have a thumbnail.
+ */
 export async function generateThumbnails() {
     logger.info('[THUMB] Starting thumbnail generation process...');
     const db = loadIndex(config.DATA_DIR, config.VIDEO_ROOT);

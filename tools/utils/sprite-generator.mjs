@@ -13,10 +13,20 @@ const logger = createLogger({
 });
 
 // --- Helpers ---
+/**
+ * Ensures that a directory exists, creating it if it doesn't.
+ * @param {string} p - The path to the directory to ensure.
+ */
 function ensureDir(p) {
     fs.mkdirSync(p, { recursive: true });
 }
 
+/**
+ * Executes a shell command and captures its stderr for error reporting.
+ * @param {string} cmd - The command to execute (e.g., 'ffmpeg').
+ * @param {string[]} args - An array of arguments for the command.
+ * @returns {Promise<void>} A promise that resolves if the command succeeds, or rejects with an error if it fails.
+ */
 function run(cmd, args) {
     return new Promise((resolve, reject) => {
         const p = spawn(cmd, args, { windowsHide: true });
@@ -31,6 +41,11 @@ function run(cmd, args) {
     });
 }
 
+/**
+ * Converts a total number of seconds into an HLS-compatible timestamp format (HH:MM:SS.ms).
+ * @param {number} totalSeconds - The total number of seconds.
+ * @returns {string} The formatted timestamp string.
+ */
 function secondsToTimestamp(totalSeconds) {
     const s = Math.max(0, Math.floor(totalSeconds));
     const hh = String(Math.floor(s / 3600)).padStart(2, '0');
@@ -42,21 +57,34 @@ function secondsToTimestamp(totalSeconds) {
 /**
  * Extract frames as PNG (RGB) to avoid swscale/zscale color pipeline edge cases.
  */
+/**
+ * Extracts frames from a video as PNG images using ffmpeg.
+ * It tries multiple filter pipelines to handle various video color profiles robustly.
+ * @param {object} options - Options for frame extraction.
+ * @param {string} options.input - Path to the input video file.
+ * @param {string} options.outDir - Output directory for the extracted PNG frames.
+ * @param {number} options.fpsEverySec - Extract one frame every `fpsEverySec` seconds.
+ * @param {number} options.width - Desired width of the extracted frames.
+ * @throws {Error} If ffmpeg fails to extract frames after all attempts.
+ */
 async function extractFramesToPng({ input, outDir, fpsEverySec, width }) {
     ensureDir(outDir);
     const commonArgs = [
-        '-hide_banner',
-        '-nostdin',
-        '-loglevel',
-        'error',
-        '-y',
-        '-i',
-        input,
+        '-hide_banner', // Hide FFmpeg's startup information
+        '-nostdin', // Prevent FFmpeg from waiting for user input
+        '-loglevel', // Set the logging level
+        'error', // Only show errors to keep output clean
+        '-y', // Overwrite output files without asking
+        '-i', // Specify the input file
+        input, // The path to the video file
     ];
 
     const vfCandidates = [
+        // 1) Standard approach: set frame rate, scale, and convert to RGB
         `fps=1/${fpsEverySec},scale=${width}:-2,format=rgb24`,
+        // 2) Fallback with colorspace normalization: useful for videos with unusual color profiles
         `colorspace=iall=bt709:all=bt709:fast=1,fps=1/${fpsEverySec},scale=${width}:-2,format=rgb24`,
+        // 3) Another fallback with zscale for more advanced color handling
         `zscale=primaries=bt709:transfer=bt709:matrix=bt709,format=gbrp,fps=1/${fpsEverySec},scale=${width}:-2,format=rgb24`,
     ];
 
@@ -86,6 +114,16 @@ async function extractFramesToPng({ input, outDir, fpsEverySec, width }) {
 /**
  * Compose a sprite sheet and VTT from extracted frames.
  */
+/**
+ * Composes a sprite sheet (or multiple) from extracted PNG frames and generates a corresponding VTT file.
+ * @param {object} options - Options for composing the sprite and VTT.
+ * @param {string} options.framesDir - Directory containing the extracted PNG frames.
+ * @param {string} options.hash - The hash of the video, used for naming output files.
+ * @param {string} options.outVttPath - The output path for the VTT file.
+ * @param {number} options.intervalSec - The time interval between frames in the VTT.
+ * @param {number} options.tileW - The width of each individual frame (tile) in the sprite sheet.
+ * @throws {Error} If no frames were extracted.
+ */
 async function composeSpriteAndVtt({
     framesDir,
     hash,
@@ -106,6 +144,7 @@ async function composeSpriteAndVtt({
 
     const cols = Math.max(1, config.SPRITE_COLUMNS);
 
+    /** @constant {number} JPEG_MAX_DIMENSION - The maximum pixel dimension for JPEG images. */
     const JPEG_MAX_DIMENSION = 65535;
     const maxRows = Math.floor(JPEG_MAX_DIMENSION / tileH);
     const maxFramesPerSprite = maxRows * cols;
@@ -182,6 +221,13 @@ async function composeSpriteAndVtt({
 /**
  * Per-file pipeline
  */
+/**
+ * Generates sprite sheets and VTT files for a single video file.
+ * @param {object} options - Options for generating sprites for a file.
+ * @param {string} options.relPath - The relative path of the video file.
+ * @param {string} options.rootDir - The root directory of the video library.
+ * @param {string} options.hash - The hash of the video file.
+ */
 async function generateSpritesForFile({ relPath, rootDir, hash }) {
     const inputAbs = path.join(rootDir, relPath);
     const assetDir = path.join(config.THUMBS_DIR, hash);
@@ -225,6 +271,9 @@ async function generateSpritesForFile({ relPath, rootDir, hash }) {
     }
 }
 
+/**
+ * Orchestrates the generation of sprite sheets and VTT files for all videos in the index.
+ */
 export async function generateSprites() {
     logger.info('[SPRITE] Starting sprite generation process...');
 
