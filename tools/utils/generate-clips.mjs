@@ -106,6 +106,13 @@ export async function generateClips() {
                 'veryfast',
                 '-crf',
                 '28',
+                '-g', '12',
+                '-keyint_min', '12',
+                '-sc_threshold', '0',
+                '-pix_fmt', 'yuv420p',
+                '-profile:v', 'high',
+                '-level', '4.0',
+
                 '-an', // No audio
                 // Combine all video filters into one -vf flag
                 '-vf',
