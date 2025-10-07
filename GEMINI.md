@@ -19,13 +19,13 @@ This guide provides quick references for developing the video server project. Fo
 
 - **Server Entry Point:** `server.js`
 - **Backend Logic:**
-    - `lib/hls.js`: HLS session management and transcoding.
-    - `lib/scan.js`: Video file scanning.
-    - `lib/ffmpeg.js`: Thumbnail generation.
-    - `lib/db.js`: JSON database interaction.
+  - `lib/hls.js`: HLS session management and transcoding.
+  - `lib/scan.js`: Video file scanning.
+  - `lib/ffmpeg.js`: Thumbnail generation.
+  - `lib/db.js`: JSON database interaction.
 - **Frontend Logic:**
-    - `public/js/main.js`: Main application logic for the browser page.
-    - `public/player.html` & `public/js/player.js`: The video player page.
+  - `public/js/main.js`: Main application logic for the browser page.
+  - `public/player.html` & `public/js/player.js`: The video player page.
 - **Configuration:** `.env` (must be created from `.env.example`)
 - **Video Index:** `data/thumbs-index.json`
 
@@ -58,22 +58,22 @@ This guide provides quick references for developing the video server project. Fo
 
 - **`data/thumbs-index.json`**: The main "database". It maps a video's relative file path to its metadata.
 
-    ```json
-    {
-        "version": 1,
-        "updatedAt": "...",
-        "videoRoot": "...",
-        "files": {
-            "path/to/video1.mp4": {
-                "hash": "...",
-                "mtimeMs": 123456789,
-                "size": 98765,
-                "durationMs": 60000,
-                "thumb": "hash.jpg"
-            }
-        }
+  ```json
+  {
+    "version": 1,
+    "updatedAt": "...",
+    "videoRoot": "...",
+    "files": {
+      "path/to/video1.mp4": {
+        "hash": "...",
+        "mtimeMs": 123456789,
+        "size": 98765,
+        "durationMs": 60000,
+        "thumb": "hash.jpg"
+      }
     }
-    ```
+  }
+  ```
 
 ## Gotchas & Notes
 

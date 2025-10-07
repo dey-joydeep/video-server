@@ -64,14 +64,14 @@ A simple, self-hosted video server for your local network. It scans your video l
 
 - **For development (with auto-reload):**
 
-    ```bash
-    npm run dev
-    ```
+  ```bash
+  npm run dev
+  ```
 
 - **For production:**
-    ```bash
-    npm start
-    ```
+  ```bash
+  npm start
+  ```
 
 The server will be accessible at `http://localhost:8200` (or the port you configured).
 
@@ -89,14 +89,14 @@ This will scan the `VIDEO_ROOT` directory, add new videos to the index, and gene
 
 ## API Endpoints
 
-| Method | Path | Description | Key Parameters |
-| :--- | :--- | :--- | :--- |
-| GET | `/api/list` | Lists videos with search and pagination. | `q`, `sort`, `offset`, `limit` |
-| GET | `/api/session` | Initiates an HLS streaming session for a video. | `id`, `preview` |
-| GET | `/api/meta` | Gets metadata for a single video. | `id` or `f` (legacy) |
-| GET | `/hls/:token/:file` | Serves HLS playlist (.m3u8) and segments (.ts). | (Internal use) |
-| GET | `/hlskey/:token/key.bin` | Serves the AES encryption key for the HLS stream. | (Internal use) |
-| GET | `/thumbs/:hash.jpg` | Serves a video thumbnail. | (Internal use) |
+| Method | Path                     | Description                                       | Key Parameters                 |
+| :----- | :----------------------- | :------------------------------------------------ | :----------------------------- |
+| GET    | `/api/list`              | Lists videos with search and pagination.          | `q`, `sort`, `offset`, `limit` |
+| GET    | `/api/session`           | Initiates an HLS streaming session for a video.   | `id`, `preview`                |
+| GET    | `/api/meta`              | Gets metadata for a single video.                 | `id` or `f` (legacy)           |
+| GET    | `/hls/:token/:file`      | Serves HLS playlist (.m3u8) and segments (.ts).   | (Internal use)                 |
+| GET    | `/hlskey/:token/key.bin` | Serves the AES encryption key for the HLS stream. | (Internal use)                 |
+| GET    | `/thumbs/:hash.jpg`      | Serves a video thumbnail.                         | (Internal use)                 |
 
 ## Debugging
 
@@ -109,23 +109,23 @@ This will scan the `VIDEO_ROOT` directory, add new videos to the index, and gene
 
 All configuration is done via the `.env` file.
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `VIDEO_ROOT` | **Required.** The absolute path to your video files directory. | - |
-| `BIND` | The IP address to bind the server to. `0.0.0.0` for all interfaces. | `0.0.0.0` |
-| `PORT` | The port for the web server. | `8200` |
-| `DATA_DIR` | Directory to store the JSON index. | `./data` |
-| `THUMBS_DIR` | Directory to store generated thumbnails. | `./thumbs` |
-| `THUMB_WIDTH` | The width of generated thumbnails in pixels. | `320` |
-| `THUMB_AT_SECONDS` | The timestamp (in seconds) to try and grab the thumbnail from. | `3` |
-| `THUMB_DEBUG` | Print `ffmpeg` thumbnail commands to the console (`1` for yes, `0` for no). | `0` |
-| `AUTO_SYNC_ON_START` | Run the sync process automatically on server start (`1` for yes, `0` for no). | `1` |
-| `FFMPEG_PATH` | Optional explicit path to the `ffmpeg` executable. | `ffmpeg` |
-| `FFPROBE_PATH` | Optional explicit path to the `ffprobe` executable. | `ffprobe` |
-| `HLS_DIR` | Directory to store temporary HLS session files. | `.hls` |
-| `HLS_SEG_SEC` | The length of each HLS video segment in seconds. | `4` |
-| `TOKEN_TTL_SEC` | Time-to-live for HLS session tokens in seconds. | `900` (15 mins) |
-| `TOKEN_PIN_IP` | Bind HLS sessions to the client's IP address (`true` or `false`). | `true` |
+| Variable             | Description                                                                   | Default         |
+| :------------------- | :---------------------------------------------------------------------------- | :-------------- |
+| `VIDEO_ROOT`         | **Required.** The absolute path to your video files directory.                | -               |
+| `BIND`               | The IP address to bind the server to. `0.0.0.0` for all interfaces.           | `0.0.0.0`       |
+| `PORT`               | The port for the web server.                                                  | `8200`          |
+| `DATA_DIR`           | Directory to store the JSON index.                                            | `./data`        |
+| `THUMBS_DIR`         | Directory to store generated thumbnails.                                      | `./thumbs`      |
+| `THUMB_WIDTH`        | The width of generated thumbnails in pixels.                                  | `320`           |
+| `THUMB_AT_SECONDS`   | The timestamp (in seconds) to try and grab the thumbnail from.                | `3`             |
+| `THUMB_DEBUG`        | Print `ffmpeg` thumbnail commands to the console (`1` for yes, `0` for no).   | `0`             |
+| `AUTO_SYNC_ON_START` | Run the sync process automatically on server start (`1` for yes, `0` for no). | `1`             |
+| `FFMPEG_PATH`        | Optional explicit path to the `ffmpeg` executable.                            | `ffmpeg`        |
+| `FFPROBE_PATH`       | Optional explicit path to the `ffprobe` executable.                           | `ffprobe`       |
+| `HLS_DIR`            | Directory to store temporary HLS session files.                               | `.hls`          |
+| `HLS_SEG_SEC`        | The length of each HLS video segment in seconds.                              | `4`             |
+| `TOKEN_TTL_SEC`      | Time-to-live for HLS session tokens in seconds.                               | `900` (15 mins) |
+| `TOKEN_PIN_IP`       | Bind HLS sessions to the client's IP address (`true` or `false`).             | `true`          |
 
 ## Architecture
 
@@ -165,19 +165,19 @@ The application consists of two main parts:
 
 - **`server.js`**: The main server entry point.
 - **`lib/`**: Core backend modules.
-    - `hls.js`: HLS session management and transcoding.
-    - `scan.js`: Video file scanning.
-    - `ffmpeg.js`: Thumbnail generation.
-    - `db.js`: JSON database interaction.
-    - `config.js`: Application configuration loader.
-    - `logger.js`: Logging setup.
+  - `hls.js`: HLS session management and transcoding.
+  - `scan.js`: Video file scanning.
+  - `ffmpeg.js`: Thumbnail generation.
+  - `db.js`: JSON database interaction.
+  - `config.js`: Application configuration loader.
+  - `logger.js`: Logging setup.
 - **`public/`**: Frontend static files.
-    - `js/main.js`: Main application logic for the browser page.
-    - `player.html` & `js/player.js`: The video player page.
+  - `js/main.js`: Main application logic for the browser page.
+  - `player.html` & `js/player.js`: The video player page.
 - **`data/`**: Data files.
-    - `thumbs-index.json`: The main "database" mapping video paths to metadata.
+  - `thumbs-index.json`: The main "database" mapping video paths to metadata.
 - **`tools/`**: Command-line scripts.
-    - `sync.js`: Manual sync script.
+  - `sync.js`: Manual sync script.
 - **`.env`**: Local configuration file (must be created from `.env.example`).
 
 ## Core Data Structures
@@ -186,18 +186,18 @@ The main "database" is `data/thumbs-index.json`. It maps a video's relative file
 
 ```json
 {
-    "version": 1,
-    "updatedAt": "...",
-    "videoRoot": "...",
-    "files": {
-        "path/to/video1.mp4": {
-            "hash": "...",
-            "mtimeMs": 123456789,
-            "size": 98765,
-            "durationMs": 60000,
-            "thumb": "hash.jpg"
-        }
+  "version": 1,
+  "updatedAt": "...",
+  "videoRoot": "...",
+  "files": {
+    "path/to/video1.mp4": {
+      "hash": "...",
+      "mtimeMs": 123456789,
+      "size": 98765,
+      "durationMs": 60000,
+      "thumb": "hash.jpg"
     }
+  }
 }
 ```
 

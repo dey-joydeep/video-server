@@ -1,254 +1,254 @@
 :root {
-    --bg: #0b0d10;
-    --fg: #e5e7eb;
-    --muted: #9aa3af;
-    --border: #202632;
-    --card: #12161c;
-    --brand: #e2e8f0;
+  --bg: #0b0d10;
+  --fg: #e5e7eb;
+  --muted: #9aa3af;
+  --border: #202632;
+  --card: #12161c;
+  --brand: #e2e8f0;
 }
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font-family:
-        system-ui,
-        Segoe UI,
-        Roboto,
-        Arial;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    system-ui,
+    Segoe UI,
+    Roboto,
+    Arial;
 }
 header.app {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: #0b0d10cc;
-    -webkit-backdrop-filter: saturate(160%) blur(8px);
-    backdrop-filter: saturate(160%) blur(8px);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 12px;
-    height: 52px;
-    display: grid;
-    grid-template-columns: 1fr minmax(240px, 640px) 1fr;
-    gap: 10px;
-    align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #0b0d10cc;
+  -webkit-backdrop-filter: saturate(160%) blur(8px);
+  backdrop-filter: saturate(160%) blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  height: 52px;
+  display: grid;
+  grid-template-columns: 1fr minmax(240px, 640px) 1fr;
+  gap: 10px;
+  align-items: center;
 }
 header .left {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 header .center {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
 }
 header .right {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
 }
 h1.brand {
-    font-size: 16px;
-    margin: 0;
-    color: var(--brand);
+  font-size: 16px;
+  margin: 0;
+  color: var(--brand);
 }
 input[type='search'],
 select {
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: #0f1318;
-    color: var(--fg);
-    min-width: 160px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0f1318;
+  color: var(--fg);
+  min-width: 160px;
 }
 .iconbtn,
 .btn {
-    cursor: pointer;
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: #0f1318;
-    color: var(--fg);
-    text-decoration: none;
-    -webkit-user-select: none;
-    user-select: none;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0f1318;
+  color: var(--fg);
+  text-decoration: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .iconbtn svg {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
 }
 main.wrap {
-    padding: 12px;
+  padding: 12px;
 }
 .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
 }
 .list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 10px;
-    display: flex;
-    gap: 8px;
-    flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
 }
 .card .thumb {
-    width: 100%;
-    aspect-ratio: 16/9;
-    border-radius: 10px;
-    object-fit: cover;
-    background: #000;
-    cursor: pointer;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #000;
+  cursor: pointer;
 }
 .card .title {
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .card .meta {
-    font-size: 12px;
-    color: var(--muted);
+  font-size: 12px;
+  color: var(--muted);
 }
 .card:hover {
-    outline: 1px solid #263041;
+  outline: 1px solid #263041;
 }
 
 /* Center the player section */
 .player {
-    display: flex;
-    justify-content: center;
-    position: relative;
+  display: flex;
+  justify-content: center;
+  position: relative;
 }
 
 /* Keep a consistent box (16:9) and center it */
 .frame16x9 {
-    width: 100%;
-    max-width: 1100px; /* tune for desktop */
-    aspect-ratio: 16 / 9;
-    background: #000;
-    display: block;
-    margin: 0 auto; /* belt-and-suspenders centering */
-    object-fit: contain; /* letterbox instead of stretching */
+  width: 100%;
+  max-width: 1100px; /* tune for desktop */
+  aspect-ratio: 16 / 9;
+  background: #000;
+  display: block;
+  margin: 0 auto; /* belt-and-suspenders centering */
+  object-fit: contain; /* letterbox instead of stretching */
 }
 
 .modal {
-    position: fixed;
-    inset: 0;
-    background: #0009;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
+  position: fixed;
+  inset: 0;
+  background: #0009;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 .modal.show {
-    display: flex;
+  display: flex;
 }
 .modal .panel {
-    background: #0f1318;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    max-width: 520px;
-    width: 100%;
-    color: var(--fg);
+  background: #0f1318;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 520px;
+  width: 100%;
+  color: var(--fg);
 }
 .modal h2 {
-    margin-top: 0;
+  margin-top: 0;
 }
 .modal .row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin: 6px 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
 }
 footer.app {
-    padding: 16px;
-    color: var(--muted);
-    text-align: center;
-    border-top: 1px solid var(--border);
-    margin-top: 12px;
+  padding: 16px;
+  color: var(--muted);
+  text-align: center;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
 }
 .hidden {
-    display: none !important;
+  display: none !important;
 }
 .pointer {
-    cursor: pointer;
+  cursor: pointer;
 }
 .centered {
-    display: flex;
-    justify-content: center;
-    margin: 14px 0;
+  display: flex;
+  justify-content: center;
+  margin: 14px 0;
 }
 @media (max-width: 768px) {
-    header.app {
-        grid-template-columns: auto 1fr auto;
-        gap: 6px;
-    }
-    .center {
-        justify-content: flex-start;
-    }
+  header.app {
+    grid-template-columns: auto 1fr auto;
+    gap: 6px;
+  }
+  .center {
+    justify-content: flex-start;
+  }
 }
 
 .loading {
-    text-align: center;
-    color: #9aa3af;
-    padding: 12px 0;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
+  text-align: center;
+  color: #9aa3af;
+  padding: 12px 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
 }
 .hidden {
-    display: none;
+  display: none;
 }
 
 /* --- Timeline Preview --- */
 .progress-bar-preview {
-    position: absolute;
-    bottom: 60px; /* Adjust based on video controls height */
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    padding: 4px;
-    display: none; /* Hidden by default */
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none; /* Prevent mouse interaction */
-    transform: translateX(-50%); /* Center on cursor */
+  position: absolute;
+  bottom: 60px; /* Adjust based on video controls height */
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 4px;
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none; /* Prevent mouse interaction */
+  transform: translateX(-50%); /* Center on cursor */
 }
 
 .progress-bar-preview.visible {
-    display: flex;
+  display: flex;
 }
 
 .preview-thumb {
-    background-size: auto;
-    background-repeat: no-repeat;
-    background-color: #000;
+  background-size: auto;
+  background-repeat: no-repeat;
+  background-color: #000;
 }
 
 .preview-time {
-    font-size: 12px;
-    margin-top: 4px;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 0 4px;
-    border-radius: 2px;
+  font-size: 12px;
+  margin-top: 4px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0 4px;
+  border-radius: 2px;
 }

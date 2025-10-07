@@ -4,3 +4,6 @@ log
 thumbs
 data
 .hls
+dist/
+.vscode/
+package-lock.json
