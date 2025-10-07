@@ -102,9 +102,9 @@ This will scan the `VIDEO_ROOT` directory, add new videos to the index, and gene
 ## Debugging
 
 - **General Logs:** Check the `log/` directory for daily log files managed by `winston`.
-- **FFmpeg Errors:** The `ffmpeg.mjs` and `hls.mjs` modules log `ffmpeg`'s stderr output on failure. Look for these logs in the console output when running `npm run dev`.
+- **FFmpeg Errors:** The `ffmpeg.js` and `hls.js` modules log `ffmpeg`'s stderr output on failure. Look for these logs in the console output when running `npm run dev`.
 - **Thumbnail Issues:** Set `THUMB_DEBUG=1` in your `.env` file to print the exact `ffmpeg` commands used for thumbnailing to the console.
-- **HLS Failures:** The `hls.mjs` module first tries to `copy` codecs. If that fails, it falls back to a full `transcode`. Check the server logs for `[HLS] starting COPY job` or `[HLS] starting TRANSCODE job` to see which path is being taken.
+- **HLS Failures:** The `hls.js` module first tries to `copy` codecs. If that fails, it falls back to a full `transcode`. Check the server logs for `[HLS] starting COPY job` or `[HLS] starting TRANSCODE job` to see which path is being taken.
 
 ## Configuration
 
@@ -164,21 +164,21 @@ The application consists of two main parts:
 
 ## Project Structure
 
-- **`server.mjs`**: The main server entry point.
+- **`server.js`**: The main server entry point.
 - **`lib/`**: Core backend modules.
-    - `hls.mjs`: HLS session management and transcoding.
-    - `scan.mjs`: Video file scanning.
-    - `ffmpeg.mjs`: Thumbnail generation.
-    - `db.mjs`: JSON database interaction.
-    - `config.mjs`: Application configuration loader.
-    - `logger.mjs`: Logging setup.
+    - `hls.js`: HLS session management and transcoding.
+    - `scan.js`: Video file scanning.
+    - `ffmpeg.js`: Thumbnail generation.
+    - `db.js`: JSON database interaction.
+    - `config.js`: Application configuration loader.
+    - `logger.js`: Logging setup.
 - **`public/`**: Frontend static files.
     - `js/main.js`: Main application logic for the browser page.
     - `player.html` & `js/player.js`: The video player page.
 - **`data/`**: Data files.
     - `thumbs-index.json`: The main "database" mapping video paths to metadata.
 - **`tools/`**: Command-line scripts.
-    - `sync.mjs`: Manual sync script.
+    - `sync.js`: Manual sync script.
 - **`.env`**: Local configuration file (must be created from `.env.example`).
 
 ## Core Data Structures
@@ -206,4 +206,4 @@ The main "database" is `data/thumbs-index.json`. It maps a video's relative file
 
 - **`ffmpeg` is critical:** The application will fail at thumbnailing and streaming if `ffmpeg`/`ffprobe` are not correctly installed and in the system's `PATH` (or specified via `FFMPEG_PATH` in `.env`).
 - **Sync Process:** The initial `npm run sync` can be very slow on large libraries. Subsequent runs are much faster as they only process new or changed files.
-- **HLS Concurrency:** HLS generation is resource-intensive. `hls.mjs` limits concurrent `ffmpeg` jobs. Additional streaming requests will be queued.
+- **HLS Concurrency:** HLS generation is resource-intensive. `hls.js` limits concurrent `ffmpeg` jobs. Additional streaming requests will be queued.

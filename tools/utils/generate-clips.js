@@ -1,10 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
-import { loadIndex } from '../../lib/db.mjs';
-import { createLogger } from '../../lib/logger.mjs';
-import config from '../../lib/config.mjs';
-import { LOGGING } from '../../lib/constants.mjs';
+import { loadIndex } from '../../lib/db.js';
+import { createLogger } from '../../lib/logger.js';
+import config from '../../lib/config.js';
+import { LOGGING } from '../../lib/constants.js';
 
 const logger = createLogger({
     dirname: config.TOOLS_LOG_DIR,

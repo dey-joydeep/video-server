@@ -6,7 +6,7 @@ export default [
     { ignores: ['tmp/'] },
     // Configuration for Node.js files
     {
-        files: ['lib/**/*.mjs', 'server.mjs', 'tools/**/*.mjs'],
+        files: ['lib/**/*.js', 'server.js', 'tools/**/*.js'],
         languageOptions: {
             globals: {
                 ...globals.node,

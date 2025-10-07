@@ -1,4 +1,4 @@
-// E:\workspace\video-server\tools\sync.mjs
+
 // Incremental sync: scan VIDEO_ROOT, detect renames, generate thumbs, update JSON DB.
 // Keeps a single fixed progress line at the top; prints file logs beneath it.
 // Distinguishes cached (pre-run) vs duplicate (same hash seen earlier this run).
@@ -9,10 +9,10 @@ import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
 import { spawn } from 'node:child_process';
 
-import { loadIndex, saveIndex } from '../../lib/db.mjs';
-import { walkVideos } from '../../lib/scan.mjs';
-import { hashFile } from '../../lib/hash.mjs';
-import config from '../../lib/config.mjs';
+import { loadIndex, saveIndex } from '../../lib/db.js';
+import { walkVideos } from '../../lib/scan.js';
+import { hashFile } from '../../lib/hash.js';
+import config from '../../lib/config.js';
 
 /**
  * Uses ffprobe to get the duration of a video file in milliseconds.

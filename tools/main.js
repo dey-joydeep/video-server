@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { createLogger } from '../lib/logger.mjs';
+import { createLogger } from '../lib/logger.js';
 
-import { runSync } from './utils/sync.mjs';
-import { generateThumbnails } from './utils/generate-thumbnails.mjs';
-import { generateSprites } from './utils/sprite-generator.mjs';
-import { generateClips } from './utils/generate-clips.mjs';
+import { runSync } from './utils/sync.js';
+import { generateThumbnails } from './utils/generate-thumbnails.js';
+import { generateSprites } from './utils/sprite-generator.js';
+import { generateClips } from './utils/generate-clips.js';
 
 const logger = createLogger({
     dirname: 'logs/tools-log',

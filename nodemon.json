@@ -1,7 +1,7 @@
 {
-    "watch": ["server.mjs", "lib", "public"],
-    "ext": "mjs,js,json,css,html",
+    "watch": ["server.js", "lib", "public"],
+    "ext": "js,json,css,html",
     "ignore": ["thumbs", "data/thumbs-index.json", "node_modules"],
-    "exec": "node server.mjs",
+    "exec": "node server.js",
     "delay": "200ms"
 }

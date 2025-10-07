@@ -1,4 +1,3 @@
-// server.mjs — robust startup + HLS resolver via live scan (updated)
 // (keeps your routes; integrates HLS exactly once at startup)
 
 import express from 'express';
@@ -7,10 +6,10 @@ import path from 'path';
 import mime from 'mime';
 import morgan from 'morgan';
 import { spawn } from 'node:child_process';
-import config from './lib/config.mjs';
-import { init as initHls, setupHls } from './lib/hls.mjs';
-import { createLogger } from './lib/logger.mjs';
-import { SUPPORTED_VIDEO_EXTENSIONS, LOGGING } from './lib/constants.mjs';
+import config from './lib/config.js';
+import { init as initHls, setupHls } from './lib/hls.js';
+import { createLogger } from './lib/logger.js';
+import { SUPPORTED_VIDEO_EXTENSIONS, LOGGING } from './lib/constants.js';
 
 const logger = createLogger({
     dirname: config.LOGS_DIR,
@@ -20,7 +19,7 @@ const logger = createLogger({
 initHls({ logger });
 
 /** @constant {string} DB_PATH - The absolute path to the JSON database file. */
-const DB_PATH = path.join(config.DATA_DIR, 'thumbs-index.json'); // produced by tools/sync.mjs
+const DB_PATH = path.join(config.DATA_DIR, 'thumbs-index.json'); // produced by tools/sync.js
 /** @constant {string} PUBLIC_DIR - The absolute path to the public static assets directory. */
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 

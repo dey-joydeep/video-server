@@ -4,7 +4,7 @@ This guide provides quick references for developing the video server project. Fo
 
 ## Core Technologies
 
-- **Backend:** Node.js, Express.js (using ES Modules `.mjs`)
+- **Backend:** Node.js, Express.js (using ES Modules `.js`)
 - **Frontend:** Vanilla JavaScript (ESM), HTML, CSS
 - **Streaming:** HLS (HTTP Live Streaming) via `ffmpeg`
 - **Dependencies:** `ffmpeg` and `ffprobe` must be in the system `PATH`.
@@ -17,12 +17,12 @@ This guide provides quick references for developing the video server project. Fo
 
 ## Important Files
 
-- **Server Entry Point:** `server.mjs`
+- **Server Entry Point:** `server.js`
 - **Backend Logic:**
-    - `lib/hls.mjs`: HLS session management and transcoding.
-    - `lib/scan.mjs`: Video file scanning.
-    - `lib/ffmpeg.mjs`: Thumbnail generation.
-    - `lib/db.mjs`: JSON database interaction.
+    - `lib/hls.js`: HLS session management and transcoding.
+    - `lib/scan.js`: Video file scanning.
+    - `lib/ffmpeg.js`: Thumbnail generation.
+    - `lib/db.js`: JSON database interaction.
 - **Frontend Logic:**
     - `public/js/main.js`: Main application logic for the browser page.
     - `public/player.html` & `public/js/player.js`: The video player page.
@@ -51,9 +51,9 @@ This guide provides quick references for developing the video server project. Fo
 ## Debugging
 
 - **General Logs:** Check the `log/` directory for daily log files managed by `winston`.
-- **FFmpeg Errors:** The `ffmpeg.mjs` and `hls.mjs` modules log `ffmpeg`'s stderr output on failure. Look for these logs in the console output when running `npm run dev`.
+- **FFmpeg Errors:** The `ffmpeg.js` and `hls.js` modules log `ffmpeg`'s stderr output on failure. Look for these logs in the console output when running `npm run dev`.
 - **Thumbnail Issues:** Set `THUMB_DEBUG=1` in your `.env` file to print the exact `ffmpeg` commands used for thumbnailing to the console.
-- **HLS Failures:** The `hls.mjs` module first tries to `copy` codecs. If that fails, it falls back to a full `transcode`. Check the server logs for `[HLS] starting COPY job` or `[HLS] starting TRANSCODE job` to see which path is being taken.
+- **HLS Failures:** The `hls.js` module first tries to `copy` codecs. If that fails, it falls back to a full `transcode`. Check the server logs for `[HLS] starting COPY job` or `[HLS] starting TRANSCODE job` to see which path is being taken.
 
 ## Core Data Structures
 
@@ -80,4 +80,4 @@ This guide provides quick references for developing the video server project. Fo
 
 - **`ffmpeg` is critical:** The application will fail at thumbnailing and streaming if `ffmpeg`/`ffprobe` are not correctly installed and in the system's `PATH` (or specified via `FFMPEG_PATH` in `.env`).
 - **Sync Process:** The initial `npm run sync` can be very slow on large libraries. Subsequent runs are much faster as they only process new or changed files.
-- **HLS Concurrency:** HLS generation is resource-intensive. `hls.mjs` limits concurrent `ffmpeg` jobs (default: `MAX_CONCURRENT = 2`). Additional streaming requests will be queued.
+- **HLS Concurrency:** HLS generation is resource-intensive. `hls.js` limits concurrent `ffmpeg` jobs (default: `MAX_CONCURRENT = 2`). Additional streaming requests will be queued.
