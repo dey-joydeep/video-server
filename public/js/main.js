@@ -79,10 +79,10 @@ function bindCards() {
             videoEl.setAttribute('muted', '');
             videoEl.defaultMuted = true;
             videoEl.loop = true;
-            
+
             // Temporarily disable looping until we have sufficient buffer
             videoEl.loop = false;
-videoEl.playsInline = true;
+            videoEl.playsInline = true;
             videoEl.setAttribute('playsinline', '');
             videoEl.preload = 'auto';
             videoEl.autoplay = true;
@@ -109,30 +109,43 @@ videoEl.playsInline = true;
                             videoEl.style.opacity = '1';
                         });
                     }
-                } catch {}
+                } catch {
+                    // ignore
+                }
             };
 
-            
-{
-    const el = videoEl;
-    const tryStart = async () => {
-        if (!el || !el.isConnected) return;
-        let ahead = 0;
-        try {
-            const b = el.buffered;
-            if (b && b.length) { ahead = b.end(b.length - 1) - el.currentTime; }
-        } catch (_) {}
-        if (ahead >= 1.5 || el.readyState >= 3) {
-            try { await el.play(); } catch (e) { console.warn('Preview play failed', e); }
-            
-                        el.loop = true;try { showOnFirstFrame(); } catch {}
-            el.removeEventListener('progress', tryStart);
-        }
-    };
-    el.addEventListener('loadeddata', tryStart, { once: true });
-    el.addEventListener('progress', tryStart);
-}
+            {
+                const el = videoEl;
+                const tryStart = async () => {
+                    if (!el || !el.isConnected) return;
+                    let ahead = 0;
+                    try {
+                        const b = el.buffered;
+                        if (b && b.length) {
+                            ahead = b.end(b.length - 1) - el.currentTime;
+                        }
+                    } catch {
+                        // ignore
+                    }
+                    if (ahead >= 1.5 || el.readyState >= 3) {
+                        try {
+                            await el.play();
+                        } catch (e) {
+                            console.warn('Preview play failed', e);
+                        }
 
+                        el.loop = true;
+                        try {
+                            showOnFirstFrame();
+                        } catch {
+                            // ignore
+                        }
+                        el.removeEventListener('progress', tryStart);
+                    }
+                };
+                el.addEventListener('loadeddata', tryStart, { once: true });
+                el.addEventListener('progress', tryStart);
+            }
         };
 
         const cancelPreview = () => {

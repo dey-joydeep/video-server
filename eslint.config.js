@@ -3,6 +3,7 @@ import prettierConfig from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default [
+    { ignores: ['tmp/'] },
     // Configuration for Node.js files
     {
         files: ['lib/**/*.mjs', 'server.mjs', 'tools/**/*.mjs'],
@@ -29,7 +30,10 @@ export default [
     // Custom rules for the whole project
     {
         rules: {
-            'no-unused-vars': 'warn',
+            'no-unused-vars': [
+                'warn',
+                { argsIgnorePattern: '^_$', varsIgnorePattern: '^_$' },
+            ],
             'no-empty': 'warn',
         },
     },

@@ -42,7 +42,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     logger.error('EXPRESS ERROR:', err);
     res.status(500).json({ error: 'server error' });
 });
