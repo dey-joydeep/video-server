@@ -46,7 +46,6 @@ This guide provides quick references for developing the video server project. Fo
 | GET    | `/hls/:token/:file`      | Serves HLS playlist (.m3u8) and segments (.ts).   | (Internal use)                 |
 | GET    | `/hlskey/:token/key.bin` | Serves the AES encryption key for the HLS stream. | (Internal use)                 |
 | GET    | `/thumbs/:hash.jpg`      | Serves a video thumbnail.                         | (Internal use)                 |
-| GET    | `/v/:id`                 | Legacy non-HLS video streaming endpoint.          | (Fallback)                     |
 
 ## Debugging
 

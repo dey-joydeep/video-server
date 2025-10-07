@@ -1,52 +1,18 @@
-
 // Incremental sync: scan VIDEO_ROOT, detect renames, generate thumbs, update JSON DB.
 // Keeps a single fixed progress line at the top; prints file logs beneath it.
 // Distinguishes cached (pre-run) vs duplicate (same hash seen earlier this run).
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import * as readline from 'node:readline';
-import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-import { loadIndex, saveIndex } from '../../lib/db.js';
-import { walkVideos } from '../../lib/scan.js';
-import { hashFile } from '../../lib/hash.js';
 import config from '../../lib/config.js';
+import { loadIndex, saveIndex } from '../../lib/db.js';
+import { hashFile } from '../../lib/hash.js';
+import { walkVideos } from '../../lib/scan.js';
 
-/**
- * Uses ffprobe to get the duration of a video file in milliseconds.
- * @param {string} filePath - The path to the video file.
- * @returns {Promise<number|null>} A promise that resolves with the duration in milliseconds, or null if it cannot be determined.
- */
-function ffprobeDurationMs(filePath) {
-    return new Promise((resolve, reject) => {
-        const p = spawn(
-            config.FFPROBE_PATH,
-            [
-                '-v',
-                'error',
-                '-show_entries',
-                'format=duration',
-                '-of',
-                'default=nokey=1:noprint_wrappers=1',
-                filePath,
-            ],
-            { windowsHide: true }
-        );
-        let out = '';
-        let err = '';
-        p.stdout.on('data', (d) => (out += d.toString()));
-        p.stderr.on('data', (d) => (err += d.toString()));
-        p.on('close', (code) => {
-            if (code !== 0) return reject(new Error(err.trim()));
-            const seconds = parseFloat(out.trim());
-            if (isNaN(seconds)) return resolve(null);
-            resolve(Math.floor(seconds * 1000));
-        });
-        p.on('error', (e) => reject(e));
-    });
-}
+import { ffprobeDurationMs } from '../../lib/ffmpeg.js';
 
 // ---- Progress line helpers (keeps one status line at the top) ----
 let _linesPrinted = 0; // number of log lines printed under the status
