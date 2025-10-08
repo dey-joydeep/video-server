@@ -17,30 +17,31 @@ export function initCardEventListeners(container, state) {
 
   const getCardState = (card) => {
     if (!cardStates.has(card)) {
-      cardStates.set(card, {});
+      cardStates.set(card, {
+        previewState: 'idle',
+        videoEl: null,
+        timer: null,
+      });
     }
     return cardStates.get(card);
   };
 
   const startPreview = (card) => {
     const cardState = getCardState(card);
-    if (cardState.inFlight || cardState.isPreviewing) {
-      return;
-    }
-    cardState.inFlight = true;
+    cardState.previewState = 'loading';
 
     const id = card.dataset.id;
     const videoItem = state.items.find((it) => it.id === id);
     const previewClip = videoItem?.previewClip;
 
     if (!state.prefs.preview || !previewClip) {
-      cardState.inFlight = false;
+      cardState.previewState = 'idle';
       return;
     }
 
     const img = card.querySelector('.thumb');
     if (!img) {
-      cardState.inFlight = false;
+      cardState.previewState = 'idle';
       return;
     }
 
@@ -49,11 +50,8 @@ export function initCardEventListeners(container, state) {
     videoEl.classList.add('thumb');
     videoEl.src = previewClip;
     videoEl.muted = true;
-    videoEl.setAttribute('muted', '');
-    videoEl.defaultMuted = true;
     videoEl.loop = true;
     videoEl.playsInline = true;
-    videoEl.setAttribute('playsinline', '');
     videoEl.preload = 'auto';
     videoEl.autoplay = true;
     videoEl.disableRemotePlayback = true;
@@ -73,30 +71,33 @@ export function initCardEventListeners(container, state) {
             videoEl.style.opacity = '1';
           });
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
 
     const tryStart = async () => {
-      if (cardState.isPreviewing) return;
+      if (cardState.previewState !== 'loading') return;
       if (!videoEl || !videoEl.isConnected) return;
+
       let ahead = 0;
       try {
         const b = videoEl.buffered;
         if (b && b.length) {
           ahead = b.end(b.length - 1) - videoEl.currentTime;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       if (ahead >= 1.5 || videoEl.readyState >= 3) {
         try {
           await videoEl.play();
-        } catch { /* ignore */ }
-        videoEl.loop = true;
-        try {
+          cardState.previewState = 'playing';
           showOnFirstFrame();
-        } catch { /* ignore */ }
-        cardState.isPreviewing = true;
-        cardState.inFlight = false;
+        } catch {
+          cancelPreview(card); // If play fails, cancel everything
+        }
         videoEl.removeEventListener('progress', tryStart);
         videoEl.removeEventListener('loadeddata', tryStart);
       }
@@ -104,19 +105,12 @@ export function initCardEventListeners(container, state) {
 
     videoEl.addEventListener('loadeddata', tryStart, { once: true });
     videoEl.addEventListener('progress', tryStart);
-
-    cardState.watchdog = setTimeout(() => {
-      if (!cardState.isPreviewing) {
-        cardState.inFlight = false;
-      }
-    }, 1000);
   };
 
   const cancelPreview = (card) => {
     const cardState = getCardState(card);
-    clearTimeout(cardState.previewTimer);
-    cardState.previewTimer = null;
-    clearTimeout(cardState.watchdog);
+    clearTimeout(cardState.timer);
+    cardState.timer = null;
 
     if (cardState.videoEl) {
       cardState.videoEl.pause();
@@ -130,8 +124,7 @@ export function initCardEventListeners(container, state) {
       cardState.videoEl.replaceWith(img);
       cardState.videoEl = null;
     }
-    cardState.isPreviewing = false;
-    cardState.inFlight = false;
+    cardState.previewState = 'idle';
   };
 
   container.addEventListener(
@@ -142,14 +135,10 @@ export function initCardEventListeners(container, state) {
       if (!card) return;
 
       const cardState = getCardState(card);
-      if (cardState.previewTimer) {
-        clearTimeout(cardState.previewTimer);
-        cardState.previewTimer = null;
+      if (cardState.previewState === 'idle') {
+        cardState.previewState = 'timing';
+        cardState.timer = setTimeout(() => startPreview(card), 250);
       }
-      if (cardState.isPreviewing || cardState.inFlight || cardState.videoEl) {
-        return;
-      }
-      cardState.previewTimer = setTimeout(() => startPreview(card), 250);
     },
     true
   );
@@ -165,15 +154,20 @@ export function initCardEventListeners(container, state) {
     true
   );
 
+  // Simplified touch handling for now
   container.addEventListener(
     'touchstart',
     (e) => {
+      console.log('touchstart');
       if (!state.isTouch) return;
       const card = e.target.closest('.card');
       if (!card) return;
       e.preventDefault();
       const cardState = getCardState(card);
-      cardState.previewTimer = setTimeout(() => startPreview(card), 250);
+      if (cardState.previewState === 'idle') {
+        cardState.previewState = 'timing';
+        cardState.timer = setTimeout(() => startPreview(card), 250);
+      }
     },
     { passive: false }
   );
