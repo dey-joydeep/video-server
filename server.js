@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import morgan from 'morgan';
 import config from './lib/config.js';
-import { init as initHls, setupHls } from './lib/hls.js';
+import { init as initHls, setupHls, getHlsJobStatus } from './lib/hls.js';
 import { createLogger } from './lib/logger.js';
 import { LOGGING } from './lib/constants.js';
 import apiRoutes from './lib/routes/api.js';
@@ -98,7 +98,7 @@ app.use(
 );
 
 // ---------- APIs ----------
-app.use('/api', apiRoutes);
+app.use('/api', apiRoutes(getHlsJobStatus));
 
 // Liveness
 app.get('/healthz', (_req, res) => res.type('text').send('ok'));

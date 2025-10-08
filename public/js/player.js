@@ -99,6 +99,37 @@ function bindKeys() {
   });
 }
 
+async function pollSessionStatus(token) {
+  showLoading('Preparing video (this may take a moment)...');
+  const pollInterval = 2000; // 2 seconds
+
+  return new Promise((resolve, reject) => {
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/session/status?token=${token}`);
+        if (!res.ok) {
+          // Stop polling on non-200 responses
+          clearInterval(intervalId);
+          return reject(new Error(`Status check failed: ${res.statusText}`));
+        }
+        const data = await res.json();
+
+        if (data.status === 'ready') {
+          clearInterval(intervalId);
+          resolve(data);
+        } else if (data.status === 'error') {
+          clearInterval(intervalId);
+          reject(new Error('Video processing failed.'));
+        }
+        // If 'processing', continue polling
+      } catch (e) {
+        clearInterval(intervalId);
+        reject(e);
+      }
+    }, pollInterval);
+  });
+}
+
 // --- playback ---
 async function play(id) {
   cleanup(); // make sure previous session/HLS are gone
@@ -106,19 +137,18 @@ async function play(id) {
   // lock down a few capabilities (best-effort)
   video.setAttribute('disablepictureinpicture', '');
   video.setAttribute('controlslist', 'noplaybackrate nodownload');
-  showLoading('Preparing the video…');
+  showLoading('Requesting video session…');
 
   // start session with abortability
   pendingController = new AbortController();
-  let hlsUrl;
+  let session;
   try {
     const res = await fetch(`/api/session?id=${encodeURIComponent(id)}`, {
       cache: 'no-store',
       signal: pendingController.signal,
     });
     if (!res.ok) throw new Error('Failed to start session');
-    const js = await res.json();
-    hlsUrl = js.hlsUrl;
+    session = await res.json();
   } catch (e) {
     if (e.name !== 'AbortError') {
       console.error('Session error:', e);
@@ -128,6 +158,22 @@ async function play(id) {
   } finally {
     // this controller belongs only to /api/session; clear now
     pendingController = null;
+  }
+
+  if (session.status === 'processing') {
+    try {
+      session = await pollSessionStatus(session.token);
+    } catch (e) {
+      console.error('Polling error:', e);
+      showLoading('Error preparing video. Please retry.');
+      return;
+    }
+  }
+
+  const { hlsUrl } = session;
+  if (!hlsUrl) {
+    showLoading('Could not get video URL. Please retry.');
+    return;
   }
 
   showLoading('Attaching stream…');
@@ -248,7 +294,8 @@ async function initSpritePreview(vttUrl) {
     const res = await fetch(vttUrl);
     if (!res.ok) return;
     const text = await res.text();
-    vttCues = parseVtt(text);
+    const hash = vttUrl.split('/')[2];
+    vttCues = parseVtt(text, hash);
     if (vttCues.length > 0) {
       video.addEventListener('mousemove', onProgressMouseMove);
       video.addEventListener('mouseleave', onProgressMouseLeave);
@@ -258,7 +305,7 @@ async function initSpritePreview(vttUrl) {
   }
 }
 
-function parseVtt(text) {
+function parseVtt(text, hash) {
   const lines = text.trim().split(/\r?\n/);
   const cues = [];
   for (let i = 1; i < lines.length; i++) {
@@ -270,7 +317,7 @@ function parseVtt(text) {
         cues.push({
           start,
           end,
-          url: `/thumbs/${match[1]}`,
+          url: `/thumbs/${hash}/${match[1]}`,
           x: parseInt(match[2], 10),
           y: parseInt(match[3], 10),
           w: parseInt(match[4], 10),
