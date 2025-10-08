@@ -138,7 +138,6 @@ async function play(id) {
 
     const onReady = () => {
       hideLoading();
-      video.play().catch(() => {});
     };
     video.addEventListener('loadedmetadata', onReady, { once: true });
     video.addEventListener('canplay', onReady, { once: true });
@@ -164,7 +163,6 @@ async function play(id) {
     // Attach lifecycle handlers to avoid “listener disconnected” races
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       hideLoading();
-      video.play().catch(() => {});
     });
 
     hls.on(Hls.Events.ERROR, (_ev, data) => {
@@ -214,7 +212,8 @@ function renderRelated() {
   const start = relatedPage * relatedPageSize;
   const slice = relatedItems.slice(0, start + relatedPageSize);
   renderCards(listEl, slice);
-  loadMoreBtn.style.display = slice.length >= relatedItems.length ? 'none' : 'block';
+  loadMoreBtn.style.display =
+    slice.length >= relatedItems.length ? 'none' : 'block';
 }
 
 async function loadRelated(excludeId) {
