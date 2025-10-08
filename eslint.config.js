@@ -36,7 +36,7 @@ export default [
   },
   // Configuration for Browser files
   {
-    files: ['public/js/**/*.js'],
+    files: ['public/js/**/*.js', 'public/components/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.browser,
