@@ -1,9 +1,8 @@
-// player.js — responsive loading + robust HLS cleanup
-// Implements: loading states, parallel "more videos" load, and clean teardown to fix
-// intermittent "listener disconnected" errors in hls.js.
+import { renderCards, initCardEventListeners } from './card.js';
+import { state } from './state.js';
 
 const video = document.getElementById('v');
-const moreList = document.getElementById('moreList');
+const listEl = document.getElementById('list');
 const loadEl = document.getElementById('loading');
 
 let hls = null; // active Hls.js instance
@@ -205,65 +204,39 @@ async function play(id) {
 }
 
 // --- “More videos” list (load early to improve perceived performance) ---
-async function loadMoreList(excludeId) {
-  try {
-    // hint while loading related content
-    const holder = document.getElementById('moreHolder');
-    if (holder && holder.classList.contains('hidden')) {
-      holder.classList.remove('hidden');
-    }
+const loadMoreBtn = document.getElementById('moreMore');
 
+let relatedItems = [];
+let relatedPage = 0;
+const relatedPageSize = 14;
+
+function renderRelated() {
+  const start = relatedPage * relatedPageSize;
+  const slice = relatedItems.slice(0, start + relatedPageSize);
+  renderCards(listEl, slice);
+  loadMoreBtn.style.display = slice.length >= relatedItems.length ? 'none' : 'block';
+}
+
+async function loadRelated(excludeId) {
+  try {
     const res = await fetch('/api/list?limit=1000&offset=0', {
       cache: 'no-store',
     });
     if (!res.ok) throw new Error('list failed');
     const data = await res.json();
 
-    const items = (data.items || data)
-      .filter((x) => x.id !== excludeId)
-      .slice(0, 14);
-
-    moreList.innerHTML = items
-      .map(
-        (it) => `
-      <div class="card" data-id="${it.id}" data-name="${it.name}"
-           tabindex="0" role="button" aria-label="Open ${it.name}">
-        <img class="thumb" src="/thumbs/${it.thumb}" alt="${it.name}">
-        <div class="title">${it.name}</div>
-        <div class="meta">${new Date(it.mtimeMs).toLocaleString()}</div>
-      </div>`
-      )
-      .join('');
-
-    // Single handler to avoid flicker / double init
-    const handleOpen = (nid) => {
-      showLoading('Loading video…');
-      history.replaceState(
-        null,
-        '',
-        './player.html?id=' + encodeURIComponent(nid)
-      );
-      play(nid);
-      // refresh list in background
-      loadMoreList(nid);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    moreList.querySelectorAll('.card').forEach((card) => {
-      const nid = card.dataset.id;
-      const open = () => handleOpen(nid);
-      card.addEventListener('click', open);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      });
-    });
+    relatedItems = (data.items || data).filter((x) => x.id !== excludeId);
+    state.items = relatedItems; // for card.js
+    renderRelated();
   } catch (e) {
     console.warn('Related list error:', e);
   }
 }
+
+loadMoreBtn.addEventListener('click', () => {
+  relatedPage++;
+  renderRelated();
+});
 
 const previewEl = document.querySelector('.progress-bar-preview');
 const previewThumbEl = document.querySelector('.preview-thumb');
@@ -368,6 +341,7 @@ function onProgressMouseLeave() {
   }
 
   bindKeys();
+  initCardEventListeners(listEl, state);
 
   // Fetch metadata to check for sprites
   try {
@@ -382,7 +356,7 @@ function onProgressMouseLeave() {
 
   // Start “More videos” early to improve perceived responsiveness:
   // don’t await it — let it render as soon as it returns.
-  loadMoreList(id);
+  loadRelated(id);
 
   // Then attach playback
   await play(id);
