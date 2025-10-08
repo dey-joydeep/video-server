@@ -76,35 +76,20 @@ export function initCardEventListeners(container, state) {
       }
     };
 
-    const tryStart = async () => {
+    const onCanPlay = async () => {
       if (cardState.previewState !== 'loading') return;
       if (!videoEl || !videoEl.isConnected) return;
 
-      let ahead = 0;
       try {
-        const b = videoEl.buffered;
-        if (b && b.length) {
-          ahead = b.end(b.length - 1) - videoEl.currentTime;
-        }
+        await videoEl.play();
+        cardState.previewState = 'playing';
+        showOnFirstFrame();
       } catch {
-        /* ignore */
-      }
-
-      if (ahead >= 1.5 || videoEl.readyState >= 3) {
-        try {
-          await videoEl.play();
-          cardState.previewState = 'playing';
-          showOnFirstFrame();
-        } catch {
-          cancelPreview(card); // If play fails, cancel everything
-        }
-        videoEl.removeEventListener('progress', tryStart);
-        videoEl.removeEventListener('loadeddata', tryStart);
+        cancelPreview(card); // If play fails, cancel everything
       }
     };
 
-    videoEl.addEventListener('loadeddata', tryStart, { once: true });
-    videoEl.addEventListener('progress', tryStart);
+    videoEl.addEventListener('canplay', onCanPlay, { once: true });
   };
 
   const cancelPreview = (card) => {
@@ -158,7 +143,6 @@ export function initCardEventListeners(container, state) {
   container.addEventListener(
     'touchstart',
     (e) => {
-      console.log('touchstart');
       if (!state.isTouch) return;
       const card = e.target.closest('.card');
       if (!card) return;
