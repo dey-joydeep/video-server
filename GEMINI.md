@@ -80,3 +80,15 @@ This guide provides quick references for developing the video server project. Fo
 - **`ffmpeg` is critical:** The application will fail at thumbnailing and streaming if `ffmpeg`/`ffprobe` are not correctly installed and in the system's `PATH` (or specified via `FFMPEG_PATH` in `.env`).
 - **Sync Process:** The initial `npm run sync` can be very slow on large libraries. Subsequent runs are much faster as they only process new or changed files.
 - **HLS Concurrency:** HLS generation is resource-intensive. `hls.js` limits concurrent `ffmpeg` jobs (default: `MAX_CONCURRENT = 2`). Additional streaming requests will be queued.
+
+## Gemini CLI Operational Rules
+
+- **Git Operations:** Do not run any `git` commands (e.g., `git status`, `git commit`, `git add`) unless explicitly instructed to do so by the user. Always wait for a direct command before interacting with the git repository.
+- **Commit Workflow:** Follow this specific process for commits:
+  1. You, the user, stage files (`git add`).
+  2. You say the word "staged".
+  3. I will run `git diff --staged` to see the changes (with your approval).
+  4. I will propose a commit message as plain text.
+  5. You must say "approved" to approve the message text.
+  6. After your approval, I will construct and propose the `git commit` command with the approved message for your final approval.
+  7. I will use single-line or multi-line messages as appropriate for the complexity of the changes.
