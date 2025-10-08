@@ -1,19 +1,15 @@
-import { state, loadPrefs, savePrefs } from './state.js';
+import { state, loadPrefs } from './state.js';
 import { renderCards, initCardEventListeners } from './card.js';
+
+import { initSettingsModal } from '../components/settings-modal/settings-modal.js';
 
 const listEl = document.getElementById('list');
 const loadMoreEl = document.getElementById('loadMore');
 const qEl = document.getElementById('q');
 const sortEl = document.getElementById('sort');
 const toggleViewEl = document.getElementById('toggleView');
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const prefPreview = document.getElementById('prefPreview');
-const prefVolume = document.getElementById('prefVolume');
 
 loadPrefs();
-prefPreview.checked = state.prefs.preview;
-prefVolume.value = state.prefs.volume;
 
 if (state.isMobile) {
   toggleViewEl.classList.remove('hidden');
@@ -51,10 +47,12 @@ function render() {
   const start = state.page * state.pageSize;
   const slice = state.items.slice(0, start + state.pageSize);
   renderCards(listEl, slice);
-  loadMoreEl.style.display = slice.length >= state.items.length ? 'none' : 'block';
+  loadMoreEl.style.display =
+    slice.length >= state.items.length ? 'none' : 'block';
 }
 
 initCardEventListeners(listEl, state);
+initSettingsModal();
 
 qEl.addEventListener('input', () => fetchPage(true));
 sortEl.addEventListener('change', () => fetchPage(true));
@@ -71,28 +69,6 @@ toggleViewEl.addEventListener('click', () => {
     listEl.classList.remove('list');
     listEl.classList.add('grid');
   }
-});
-
-settingsBtn.addEventListener('click', () =>
-  settingsModal.classList.add('show')
-);
-document
-  .getElementById('closeSettings')
-  .addEventListener('click', () => settingsModal.classList.remove('show'));
-settingsModal.addEventListener('click', (e) => {
-  if (e.target === settingsModal) settingsModal.classList.remove('show');
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') settingsModal.classList.remove('show');
-});
-
-prefPreview.addEventListener('change', () => {
-  state.prefs.preview = prefPreview.checked;
-  savePrefs();
-});
-prefVolume.addEventListener('input', () => {
-  state.prefs.volume = parseFloat(prefVolume.value || '0');
-  savePrefs();
 });
 
 fetchPage(true);

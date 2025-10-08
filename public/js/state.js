@@ -1,3 +1,8 @@
+export const DEFAULTS = {
+  PREVIEW: true,
+  VOLUME: 0.6, // 60%
+};
+
 export const state = {
   isMobile:
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -10,16 +15,16 @@ export const state = {
   items: [],
   q: '',
   sort: 'name-asc',
-  prefs: { preview: true, volume: 0.0 }, // Initialize with a temporary default
+  prefs: { preview: DEFAULTS.PREVIEW, volume: DEFAULTS.VOLUME },
 };
-
-// Set the volume after state.isMobile is defined
-state.prefs.volume = state.isMobile ? 0.0 : 0.5;
 
 export function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem('prefs') || '{}');
-    if (p && typeof p === 'object') Object.assign(state.prefs, p);
+    if (p && typeof p === 'object') {
+      if (typeof p.preview === 'boolean') state.prefs.preview = p.preview;
+      if (typeof p.volume === 'number') state.prefs.volume = p.volume;
+    }
   } catch {
     /* Ignored */
   }
