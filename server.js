@@ -9,7 +9,8 @@ import { init as initHls, setupHls, getHlsJobStatus } from './lib/hls.js';
 import { createLogger } from './lib/logger.js';
 import { LOGGING } from './lib/constants.js';
 import apiRoutes from './lib/routes/api.js';
-
+import { ffprobeDurationMs } from './lib/ffmpeg.js';
+import { loadIndex } from './lib/db.js';
 import { listAllVideos } from './lib/video-utils.js';
 
 const logger = createLogger({
@@ -98,7 +99,20 @@ app.use(
 );
 
 // ---------- APIs ----------
-app.use('/api', apiRoutes(getHlsJobStatus));
+const services = {
+  hls: {
+    getJobStatus: getHlsJobStatus,
+  },
+  db: {
+    loadIndex,
+  },
+  video: {
+    listAll: listAllVideos,
+    getDuration: ffprobeDurationMs,
+  },
+};
+
+app.use('/api', apiRoutes(services));
 
 // Liveness
 app.get('/healthz', (_req, res) => res.type('text').send('ok'));
