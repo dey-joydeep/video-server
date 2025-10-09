@@ -30,19 +30,27 @@ export function renderCards(container, items) {
 
 export function initCardEventListeners(container, state) {
   const cardStates = new WeakMap();
+  let activePreviewCard = null;
+  let touchStartPos = null;
+  let touchStartTime = 0;
 
   const getCardState = (card) => {
     if (!cardStates.has(card)) {
       cardStates.set(card, {
         previewState: 'idle',
         videoEl: null,
-        timer: null,
+        timer: null, // Kept for mouseenter
       });
     }
     return cardStates.get(card);
   };
 
   const startPreview = (card) => {
+    if (activePreviewCard && activePreviewCard !== card) {
+      cancelPreview(activePreviewCard);
+    }
+    activePreviewCard = card;
+
     const cardState = getCardState(card);
     cardState.previewState = 'loading';
 
@@ -101,7 +109,7 @@ export function initCardEventListeners(container, state) {
         cardState.previewState = 'playing';
         showOnFirstFrame();
       } catch {
-        cancelPreview(card); // If play fails, cancel everything
+        cancelPreview(card);
       }
     };
 
@@ -109,6 +117,7 @@ export function initCardEventListeners(container, state) {
   };
 
   const cancelPreview = (card) => {
+    if (!card) return;
     const cardState = getCardState(card);
     clearTimeout(cardState.timer);
     cardState.timer = null;
@@ -120,21 +129,24 @@ export function initCardEventListeners(container, state) {
       const videoItem = state.items.find((it) => it.id === id);
       img.src = videoItem.thumb
         ? `/thumbs/${videoItem.thumb}`
-        : './assets/placeholder.svg';
+        : '/placeholder.svg';
       img.classList.add('thumb');
       cardState.videoEl.replaceWith(img);
       cardState.videoEl = null;
     }
     cardState.previewState = 'idle';
+    if (activePreviewCard === card) {
+      activePreviewCard = null;
+    }
   };
 
+  // --- Mouse Events for Desktop ---
   container.addEventListener(
     'mouseenter',
     (e) => {
       if (state.isMobile) return;
       const card = e.target.closest('.card');
       if (!card) return;
-
       const cardState = getCardState(card);
       if (cardState.previewState === 'idle') {
         cardState.previewState = 'timing';
@@ -155,38 +167,77 @@ export function initCardEventListeners(container, state) {
     true
   );
 
-  // Simplified touch handling for now
+  // --- Touch Events for Mobile ---
   container.addEventListener(
     'touchstart',
     (e) => {
       if (!state.isTouch) return;
-      const card = e.target.closest('.card');
-      if (!card) return;
-      e.preventDefault();
-      const cardState = getCardState(card);
-      if (cardState.previewState === 'idle') {
-        cardState.previewState = 'timing';
-        cardState.timer = setTimeout(() => startPreview(card), 250);
-      }
+      touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchStartTime = Date.now();
     },
-    { passive: false }
+    { passive: true }
   );
 
   container.addEventListener('touchend', (e) => {
-    if (!state.isTouch) return;
+    if (!state.isTouch || !touchStartPos) return;
+
     const card = e.target.closest('.card');
     if (!card) return;
-    cancelPreview(card);
+
+    const touchEndPos = {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY,
+    };
+    const dy = Math.abs(touchEndPos.y - touchStartPos.y);
+    const cardHeight = card.offsetHeight;
+    const touchDuration = Date.now() - touchStartTime;
+
+    // Reset state for the next touch
+    touchStartPos = null;
+    touchStartTime = 0;
+
+    // It's a scroll if finger moves more than the card's height
+    if (dy > cardHeight) {
+      return;
+    }
+
+    // It was a press. Check duration to see if it's a tap or long press.
+    // Note: e.preventDefault() was removed from the handlers below to fix a
+    // console error on mobile where the touchend event was not cancelable.
+    // If this re-introduces a "ghost click" (unwanted navigation after a
+    // long press), a more complex flag-based solution in the main 'click'
+    // handler will be needed.
+    if (touchDuration < 250) {
+      console.log('Interpreted as tap. Touch duration: ', touchDuration, 'ms');
+      // TAP
+      if (activePreviewCard) {
+        cancelPreview(activePreviewCard);
+      }
+      const id = card.dataset.id;
+      location.href = `./player.html?id=${encodeURIComponent(id)}`;
+    } else {
+      console.log(
+        'Interpreted as long press. Touch duration: ',
+        touchDuration,
+        'ms'
+      );
+      // LONG PRESS
+      if (getCardState(card).previewState === 'playing') {
+        console.log('Cancelling preview.');
+        cancelPreview(card);
+      } else {
+        console.log('Starting preview.');
+        startPreview(card);
+      }
+    }
   });
 
-  container.addEventListener('touchcancel', (e) => {
-    if (!state.isTouch) return;
-    const card = e.target.closest('.card');
-    if (!card) return;
-    cancelPreview(card);
-  });
-
+  // Clicks are for desktop; touch is handled by touchend.
   container.addEventListener('click', (e) => {
+    if (state.isTouch) {
+      e.preventDefault();
+      return;
+    }
     const card = e.target.closest('.card');
     if (!card) return;
     e.preventDefault();
