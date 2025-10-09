@@ -1,10 +1,26 @@
+function formatDuration(ms) {
+  if (!ms || ms < 1000) return '0:00';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const paddedSeconds = seconds.toString().padStart(2, '0');
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+
+  if (hours > 0) {
+    return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+  }
+  return `${minutes}:${paddedSeconds}`;
+}
+
 function cardHtml(it) {
-  const t = it.thumb ? `/thumbs/${it.thumb}` : './assets/placeholder.svg';
-  const date = new Date(it.mtimeMs).toLocaleString();
+  const t = it.thumb ? `/thumbs/${it.thumb}` : '/placeholder.svg';
+  const duration = formatDuration(it.durationMs);
   return `<div class="card" data-id="${it.id}" data-name="${it.name}" tabindex="0" role="button" aria-label="Open ${it.name}">
     <img class="thumb" src="${t}" alt="${it.name}">
     <div class="title" title="${it.name}">${it.name}</div>
-    <div class="meta">${date}</div>
+    <div class="meta">${duration}</div>
   </div>`;
 }
 
