@@ -149,6 +149,144 @@ main.wrap {
   object-fit: contain; /* letterbox instead of stretching */
 }
 
+.player-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.player-shell .video-js {
+  width: 100%;
+  height: 100%;
+}
+/* Force VOD UI: hide any live controls in the skin */
+.video-js .vjs-live-control,
+.video-js .vjs-live-display {
+  display: none !important;
+}
+.video-js .vjs-progress-control {
+  display: block !important;
+}
+
+.player-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  gap: 6px;
+}
+
+.player-meta .meta-duration::before {
+  content: 'Duration:';
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--border);
+  margin-right: 6px;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: rgba(11, 13, 16, 0.85);
+  color: #e5e7eb;
+  font-size: 0; /* hide any text; spinner-only */
+  text-align: center;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Add a subtle spinner to the loading overlay */
+.loading-overlay::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  border-radius: 50%;
+  border: 2px solid rgba(229, 231, 235, 0.3);
+  border-top-color: #e5e7eb;
+  animation: vspin 0.8s linear infinite;
+  vertical-align: -3px;
+}
+
+@keyframes vspin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Sprite preview tooltip shown above the timeline */
+.sprite-preview {
+  position: absolute;
+  bottom: 28px; /* adjusted dynamically */
+  left: 0; /* adjusted dynamically */
+  transform: translateX(0);
+  pointer-events: none;
+  z-index: 6;
+}
+.sprite-preview.hidden {
+  display: none;
+}
+.sprite-preview-inner {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  background-color: #000; /* in case image not loaded yet */
+  background-size: auto;
+}
+
+/* Seek buttons styling */
+.vjs-seek-button .vjs-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.vjs-seek-button {
+  color: var(--fg);
+}
+
+/* Responsive / orientation-aware tweaks */
+@media (max-width: 720px) {
+  .video-js .vjs-control-bar {
+    font-size: 12px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  .vjs-seek-button .vjs-icon {
+    font-size: 10px;
+  }
+}
+
+/* Portrait: slightly larger controls for touch */
+@media (orientation: portrait) and (max-width: 900px) {
+  .video-js .vjs-control-bar {
+    height: 42px;
+  }
+  .video-js .vjs-progress-control {
+    height: 4px;
+  }
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -207,52 +345,8 @@ footer.app {
   }
 }
 
-.loading {
-  text-align: center;
-  color: #9aa3af;
-  padding: 12px 0;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-}
 .hidden {
   display: none;
-}
-
-/* --- Timeline Preview --- */
-.progress-bar-preview {
-  position: absolute;
-  bottom: 60px; /* Adjust based on video controls height */
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  padding: 4px;
-  display: none; /* Hidden by default */
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none; /* Prevent mouse interaction */
-  transform: translateX(-50%); /* Center on cursor */
-}
-
-.progress-bar-preview.visible {
-  display: flex;
-}
-
-.preview-thumb {
-  background-size: auto;
-  background-repeat: no-repeat;
-  background-color: #000;
-}
-
-.preview-time {
-  font-size: 12px;
-  margin-top: 4px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 0 4px;
-  border-radius: 2px;
 }
 
 /* --- New Settings Modal --- */

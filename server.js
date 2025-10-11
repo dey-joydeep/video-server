@@ -5,7 +5,13 @@ import fs from 'fs';
 import path from 'path';
 import morgan from 'morgan';
 import config from './lib/config.js';
-import { init as initHls, setupHls, getHlsJobStatus } from './lib/hls.js';
+import {
+  init as initHls,
+  setupHls,
+  getHlsJobStatus,
+  addWatcher,
+  removeWatcher,
+} from './lib/hls.js';
 import { createLogger } from './lib/logger.js';
 import { LOGGING } from './lib/constants.js';
 import apiRoutes from './lib/routes/api.js';
@@ -102,6 +108,8 @@ app.use(
 const services = {
   hls: {
     getJobStatus: getHlsJobStatus,
+    addWatcher,
+    removeWatcher,
   },
   db: {
     loadIndex,

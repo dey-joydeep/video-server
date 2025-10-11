@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon",
-    "prebuild": "node -e \"require('fs').mkdirSync('public/dist', { recursive: true })\",",
+    "prebuild": "node -e \"require('fs').mkdirSync('public/dist/utils', { recursive: true })\"",
     "build": "npm run build:js && npm run build:css",
-    "build:js": "terser public/js/main.js --compress --mangle -o public/dist/main.min.js && terser public/js/player.js --compress --mangle -o public/dist/player.min.js",
+    "build:js": "terser public/js/main.js --compress --mangle -o public/dist/main.min.js && terser public/js/player.js --compress --mangle -o public/dist/player.min.js && terser public/js/sprite-preview.js --compress --mangle -o public/dist/sprite-preview.js && terser public/js/utils/sprite.js --compress --mangle -o public/dist/utils/sprite.js && terser public/js/plugins/seek-buttons.js --compress --mangle -o public/dist/seek-buttons.js",
     "build:css": "cssnano-cli public/styles.css public/dist/styles.css",
     "serve:prod": "cross-env NODE_ENV=production node server.js",
     "process": "node tools/main.js",
@@ -24,13 +24,14 @@
     "mime": "^4.1.0",
     "morgan": "^1.10.1",
     "sharp": "^0.33.4",
+    "videojs-hotkeys": "^0.2.30",
     "winston": "^3.18.3",
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "@cyanheads/git-mcp-server": "^2.3.2",
     "@eslint/js": "^9.37.0",
     "@eslint/mcp": "^0.1.1",
-    "@cyanheads/git-mcp-server": "^2.3.2",
     "@modelcontextprotocol/server-filesystem": "^2025.8.21",
     "cross-env": "^10.1.0",
     "cssnano-cli": "^1.0.5",
@@ -43,7 +44,8 @@
     "lint-staged": "^16.2.3",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
-    "terser": "^5.44.0"
+    "terser": "^5.44.0",
+    "video.js": "^8.23.4"
   },
   "lint-staged": {
     "*.js": "eslint --cache --fix"

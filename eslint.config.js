@@ -17,6 +17,8 @@ export default [
       'data/',
       '.env',
       'dist/',
+      'public/vendor/**',
+      'public/dist/**',
     ],
   },
   // Configuration for Node.js files

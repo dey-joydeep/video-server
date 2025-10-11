@@ -7,10 +7,10 @@
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <!-- Your existing stylesheet -->
-    <link rel="stylesheet" href="./styles.css?v=41" />
-
-    <!-- HLS for Chromium/Firefox/Edge; Safari uses native HLS -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <link rel="stylesheet" href="./styles.css?v=42" />
+    <link rel="stylesheet" href="./vendor/video-js.min.css" />
+    <script src="./vendor/video.min.js"></script>
+    <script src="./vendor/videojs.hotkeys.min.js"></script>
   </head>
 
   <body>
@@ -32,22 +32,27 @@
     <main class="wrap">
       <!-- Player area; 16:9 box is handled via your CSS (e.g., .frame16x9) -->
       <section class="player">
-        <video
-          id="v"
-          class="frame16x9"
-          playsinline
-          controls
-          preload="metadata"
-          disablepictureinpicture
-          controlsList="noplaybackrate nodownload"
-          oncontextmenu="return false;"
-          tabindex="0"
-        ></video>
-        <div class="progress-bar-preview">
-          <div class="preview-thumb"></div>
-          <div class="preview-time">00:00</div>
+        <div class="player-shell frame16x9">
+          <video
+            id="v"
+            class="video-js vjs-default-skin"
+            playsinline
+            preload="metadata"
+            disablepictureinpicture
+            controlsList="noplaybackrate nodownload"
+            oncontextmenu="return false;"
+            tabindex="0"
+            poster="/placeholder.svg"
+          ></video>
+          <div
+            id="loading-overlay"
+            class="loading-overlay hidden"
+            aria-label="Loading"
+          ></div>
         </div>
-        <div id="loading" class="loading">Preparing video…</div>
+        <div class="player-meta">
+          <span class="meta-duration"></span>
+        </div>
       </section>
 
       <!-- More videos section (used by your player.js) -->
@@ -62,6 +67,6 @@
 
     <!-- IMPORTANT: your module initializes the session & attaches HLS/native.
        Nothing here tries to read `hlsUrl` directly. -->
-    <script type="module" src="./js/player.js?v=41"></script>
+    <script type="module" src="./js/player.js?v=42"></script>
   </body>
 </html>

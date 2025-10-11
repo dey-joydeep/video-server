@@ -1,265 +1,105 @@
 import { renderCards, initCardEventListeners } from './card.js';
+import { attachSpritePreview } from './sprite-preview.js';
 import { state } from './state.js';
+import './plugins/seek-buttons.js';
+import {
+  startSession,
+  waitForReadySSE,
+  pollUntilReady,
+} from './services/session.js';
 
-const video = document.getElementById('v');
+const videojs = window.videojs;
+
+const playerElement = document.getElementById('v');
 const listEl = document.getElementById('list');
-const loadEl = document.getElementById('loading');
-
-let hls = null; // active Hls.js instance
-let pendingController = null; // AbortController for in-flight /api/session
-
-// --- loading helpers ---
-function showLoading(msg) {
-  if (loadEl) {
-    loadEl.textContent = msg || 'Loading…';
-    loadEl.classList.remove('hidden');
-  }
-}
-function hideLoading() {
-  if (loadEl) loadEl.classList.add('hidden');
-}
-
-// Initial UI hint
-showLoading('Preparing video…');
-
-// --- util ---
-function getId() {
-  const u = new URL(location.href);
-  return u.searchParams.get('id');
-}
-
-// --- cleanup to prevent "listener disconnected" and leaks ---
-function cleanup() {
-  // abort any in-flight session fetch
-  try {
-    pendingController?.abort();
-  } catch {
-    /* Ignored */
-  }
-  pendingController = null;
-
-  // destroy Hls.js cleanly
-  if (hls) {
-    try {
-      hls.destroy();
-    } catch {
-      /* Ignored */
-    }
-    hls = null;
-  }
-
-  // fully detach media
-  if (video) {
-    try {
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    } catch {
-      /* Ignored */
-    }
-  }
-}
-window.addEventListener('pagehide', cleanup);
-window.addEventListener('beforeunload', cleanup);
-
-// --- keyboard shortcuts ---
-function bindKeys() {
-  // ensure video can take focus so arrow keys work after button clicks
-  if (video && !video.hasAttribute('tabindex'))
-    video.setAttribute('tabindex', '0');
-
-  window.addEventListener('keydown', (e) => {
-    const tag = document.activeElement?.tagName;
-    if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return;
-
-    if (e.key === ' ') {
-      e.preventDefault();
-      if (video.paused) video.play().catch(() => {});
-      else video.pause();
-    }
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      video.currentTime = Math.min(
-        video.duration || 1,
-        (video.currentTime || 0) + 5
-      );
-    }
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      video.currentTime = Math.max(0, (video.currentTime || 0) - 5);
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      video.volume = Math.min(1, (video.volume ?? 0) + 0.05);
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      video.volume = Math.max(0, (video.volume ?? 0) - 0.05);
-    }
-  });
-}
-
-async function pollSessionStatus(token) {
-  showLoading('Preparing video (this may take a moment)...');
-  const pollInterval = 2000; // 2 seconds
-
-  return new Promise((resolve, reject) => {
-    const intervalId = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/session/status?token=${token}`);
-        if (!res.ok) {
-          // Stop polling on non-200 responses
-          clearInterval(intervalId);
-          return reject(new Error(`Status check failed: ${res.statusText}`));
-        }
-        const data = await res.json();
-
-        if (data.status === 'ready') {
-          clearInterval(intervalId);
-          resolve(data);
-        } else if (data.status === 'error') {
-          clearInterval(intervalId);
-          reject(new Error('Video processing failed.'));
-        }
-        // If 'processing', continue polling
-      } catch (e) {
-        clearInterval(intervalId);
-        reject(e);
-      }
-    }, pollInterval);
-  });
-}
-
-// --- playback ---
-async function play(id) {
-  cleanup(); // make sure previous session/HLS are gone
-
-  // lock down a few capabilities (best-effort)
-  video.setAttribute('disablepictureinpicture', '');
-  video.setAttribute('controlslist', 'noplaybackrate nodownload');
-  showLoading('Requesting video session…');
-
-  // start session with abortability
-  pendingController = new AbortController();
-  let session;
-  try {
-    const res = await fetch(`/api/session?id=${encodeURIComponent(id)}`, {
-      cache: 'no-store',
-      signal: pendingController.signal,
-    });
-    if (!res.ok) throw new Error('Failed to start session');
-    session = await res.json();
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.error('Session error:', e);
-      alert('Failed to start session');
-    }
-    return;
-  } finally {
-    // this controller belongs only to /api/session; clear now
-    pendingController = null;
-  }
-
-  if (session.status === 'processing') {
-    try {
-      session = await pollSessionStatus(session.token);
-    } catch (e) {
-      console.error('Polling error:', e);
-      showLoading('Error preparing video. Please retry.');
-      return;
-    }
-  }
-
-  const { hlsUrl } = session;
-  if (!hlsUrl) {
-    showLoading('Could not get video URL. Please retry.');
-    return;
-  }
-
-  showLoading('Attaching stream…');
-
-  // native HLS (Safari) path
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = hlsUrl;
-
-    const onReady = () => {
-      hideLoading();
-    };
-    video.addEventListener('loadedmetadata', onReady, { once: true });
-    video.addEventListener('canplay', onReady, { once: true });
-    video.addEventListener(
-      'error',
-      () => {
-        console.warn('Video error (native)');
-        hideLoading();
-      },
-      { once: true }
-    );
-    return;
-  }
-
-  // Hls.js path (Chrome/Firefox/Edge)
-  if (window.Hls && window.Hls.isSupported()) {
-    // Create once per playback
-    hls = new Hls({
-      lowLatencyMode: false,
-      enableWorker: true,
-    });
-
-    // Attach lifecycle handlers to avoid “listener disconnected” races
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      hideLoading();
-    });
-
-    hls.on(Hls.Events.ERROR, (_ev, data) => {
-      console.warn('Hls.js error:', data);
-      if (!data?.fatal) return;
-      switch (data.type) {
-        case Hls.ErrorTypes.NETWORK_ERROR:
-          try {
-            hls.startLoad();
-          } catch {
-            /* Ignored */
-          }
-          break;
-        case Hls.ErrorTypes.MEDIA_ERROR:
-          try {
-            hls.recoverMediaError();
-          } catch {
-            /* Ignored */
-          }
-          break;
-        default:
-          // unrecoverable — reset and notify
-          cleanup();
-          showLoading('Playback error. Please retry.');
-          break;
-      }
-    });
-
-    hls.attachMedia(video);
-    hls.loadSource(hlsUrl);
-    return;
-  }
-
-  // no support
-  hideLoading();
-  alert('Your browser cannot play secure HLS.');
-}
-
-// --- “More videos” list (load early to improve perceived performance) ---
 const loadMoreBtn = document.getElementById('moreMore');
+const loadingOverlay = document.getElementById('loading-overlay');
 
+let player;
 let relatedItems = [];
 let relatedPage = 0;
 const relatedPageSize = 14;
+let firstPlayableReached = false;
+let spinnerVisible = false;
+let spinnerVisibleAt = 0;
+let spinnerShowTimer = null;
+let spinnerHideTimer = null;
+const SPINNER_SHOW_DELAY_MS = 150;
+const SPINNER_MIN_VISIBLE_MS = 350;
+let playlistRetryAttempts = 0;
+const MAX_PLAYLIST_RETRIES = 5;
+let currentSessionToken = null;
+let currentHlsUrl = null;
+
+function getId() {
+  const u = new URL(window.location.href);
+  return u.searchParams.get('id');
+}
+
+function toggleLoading(show) {
+  if (!loadingOverlay) return;
+  if (show) {
+    loadingOverlay.classList.remove('hidden');
+  } else {
+    loadingOverlay.classList.add('hidden');
+  }
+}
+
+function showSpinnerNow() {
+  if (spinnerHideTimer) {
+    clearTimeout(spinnerHideTimer);
+    spinnerHideTimer = null;
+  }
+  spinnerVisible = true;
+  spinnerVisibleAt = Date.now();
+  toggleLoading(true);
+}
+
+function hideSpinnerNow() {
+  spinnerVisible = false;
+  spinnerVisibleAt = 0;
+  toggleLoading(false);
+}
+
+function requestSpinnerShow(immediate = false) {
+  if (spinnerVisible) return;
+  if (spinnerShowTimer) return;
+  if (immediate) {
+    showSpinnerNow();
+    return;
+  }
+  spinnerShowTimer = setTimeout(() => {
+    spinnerShowTimer = null;
+    showSpinnerNow();
+  }, SPINNER_SHOW_DELAY_MS);
+}
+
+function requestSpinnerHide() {
+  if (spinnerShowTimer) {
+    clearTimeout(spinnerShowTimer);
+    spinnerShowTimer = null;
+  }
+  if (!spinnerVisible) return;
+  const elapsed = Date.now() - spinnerVisibleAt;
+  if (elapsed >= SPINNER_MIN_VISIBLE_MS) {
+    hideSpinnerNow();
+  } else {
+    if (spinnerHideTimer) return;
+    spinnerHideTimer = setTimeout(() => {
+      spinnerHideTimer = null;
+      hideSpinnerNow();
+    }, SPINNER_MIN_VISIBLE_MS - elapsed);
+  }
+}
 
 function renderRelated() {
   const start = relatedPage * relatedPageSize;
   const slice = relatedItems.slice(0, start + relatedPageSize);
   renderCards(listEl, slice);
-  loadMoreBtn.style.display =
-    slice.length >= relatedItems.length ? 'none' : 'block';
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display =
+      slice.length >= relatedItems.length ? 'none' : 'block';
+  }
 }
 
 async function loadRelated(excludeId) {
@@ -269,145 +109,247 @@ async function loadRelated(excludeId) {
     });
     if (!res.ok) throw new Error('list failed');
     const data = await res.json();
-
     relatedItems = (data.items || data).filter((x) => x.id !== excludeId);
-    state.items = relatedItems; // for card.js
+    state.items = relatedItems;
     renderRelated();
   } catch (e) {
-    console.warn('Related list error:', e);
+    console.warn('Related list error', e);
   }
 }
 
-loadMoreBtn.addEventListener('click', () => {
-  relatedPage++;
-  renderRelated();
-});
+async function pollSessionStatus(token, onTick) {
+  const pollInterval = 2000;
+  return new Promise((resolve, reject) => {
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/session/status?token=${token}`);
+        if (!res.ok) {
+          clearInterval(intervalId);
+          reject(new Error(`Status check failed: ${res.statusText}`));
+          return;
+        }
+        const data = await res.json();
+        if (typeof onTick === 'function') onTick(data);
+        if (data.status === 'ready') {
+          clearInterval(intervalId);
+          resolve(data);
+        } else if (data.status === 'error') {
+          clearInterval(intervalId);
+          reject(new Error('Video processing failed.'));
+        }
+      } catch (err) {
+        clearInterval(intervalId);
+        reject(err);
+      }
+    }, pollInterval);
+  });
+}
 
-const previewEl = document.querySelector('.progress-bar-preview');
-const previewThumbEl = document.querySelector('.preview-thumb');
-const previewTimeEl = document.querySelector('.preview-time');
-let vttCues = [];
+// superseded by services/session.js
 
-// --- VTT & Sprite Preview Logic ---
-async function initSpritePreview(vttUrl) {
+async function fetchMetadata(id) {
   try {
-    const res = await fetch(vttUrl);
-    if (!res.ok) return;
-    const text = await res.text();
-    const hash = vttUrl.split('/')[2];
-    vttCues = parseVtt(text, hash);
-    if (vttCues.length > 0) {
-      video.addEventListener('mousemove', onProgressMouseMove);
-      video.addEventListener('mouseleave', onProgressMouseLeave);
+    const metaRes = await fetch(`/api/meta?id=${id}`);
+    if (!metaRes.ok) throw new Error('meta failed');
+    return await metaRes.json();
+  } catch (e) {
+    console.warn('Could not fetch video metadata', e);
+    return null;
+  }
+}
+
+function formatDuration(seconds) {
+  const total = Math.floor(seconds);
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function updateMetaDisplay(meta) {
+  if (!meta) return;
+  const container = document.querySelector('.player');
+  if (!container) return;
+  const durationDisplay = container.querySelector('.meta-duration');
+  if (meta.durationMs && durationDisplay) {
+    durationDisplay.textContent = formatDuration(meta.durationMs / 1000);
+  }
+}
+
+function isTimeBuffered(p, t) {
+  try {
+    const r = p.buffered();
+    const fudge = 0.25;
+    for (let i = 0; i < r.length; i += 1) {
+      const start = r.start(i) - fudge;
+      const end = r.end(i) + fudge;
+      if (t >= start && t <= end) return true;
     }
   } catch (e) {
-    console.warn('Failed to load sprite preview', e);
+    /* ignore */
+  }
+  return false;
+}
+
+function initVideoJs(meta) {
+  if (!playerElement || !videojs) throw new Error('Video.js not available');
+  player = videojs(playerElement, {
+    controls: true,
+    autoplay: false,
+    preload: 'auto',
+    fluid: true,
+    liveui: false,
+    controlBar: {
+      playToggle: true,
+      progressControl: true,
+      volumePanel: true,
+      fullscreenToggle: true,
+      remainingTimeDisplay: false,
+    },
+    html5: {
+      vhs: {
+        overrideNative: !videojs.browser.IS_SAFARI,
+        withCredentials: false,
+      },
+    },
+  });
+
+  player.ready(() => {
+    if (typeof player.hotkeys === 'function') {
+      player.hotkeys({
+        volumeStep: 0.05,
+        seekStep: 10,
+        enableModifiersForNumbers: false,
+        fullscreenKey: (e) => e.key === 'f' || e.key === 'F',
+      });
+    }
+    if (typeof player.seekButtons === 'function') {
+      player.seekButtons({ back: 10, forward: 10 });
+    }
+    // Ensure we start from the beginning once metadata is ready
+    player.one('loadedmetadata', () => {
+      try {
+        if ((player.duration() || 0) > 0) player.currentTime(0);
+      } catch {}
+    });
+  });
+
+  player.on('waiting', () => {
+    // show spinner when playback stalls, debounced
+    requestSpinnerShow(false);
+  });
+  const markPlayable = () => {
+    if (!firstPlayableReached) {
+      firstPlayableReached = true;
+      requestSpinnerHide();
+    }
+  };
+  player.on('canplay', markPlayable);
+  player.on('playing', markPlayable);
+  player.on('seeking', () => {
+    const t = player.currentTime();
+    if (!isTimeBuffered(player, t)) requestSpinnerShow(false);
+  });
+  player.on('seeked', () => {
+    if (firstPlayableReached) requestSpinnerHide();
+  });
+  // timeupdate hide guard for quick resume
+  player.on('timeupdate', () => {
+    if (spinnerVisible) requestSpinnerHide();
+  });
+  player.on('error', () => requestSpinnerHide());
+  // Retry playlist fetch a few times if early 404/unsupported occurs
+  player.on('error', () => {
+    const err = typeof player.error === 'function' ? player.error() : null;
+    if (!currentHlsUrl || playlistRetryAttempts >= MAX_PLAYLIST_RETRIES) return;
+    const shouldRetry = err && (err.code === 2 || err.code === 4);
+    if (!shouldRetry) return;
+    playlistRetryAttempts += 1;
+    requestSpinnerShow(false);
+    setTimeout(() => {
+      player.src({ src: currentHlsUrl, type: 'application/x-mpegURL' });
+    }, 800);
+  });
+
+  updateMetaDisplay(meta);
+
+  // Hook sprite preview once we know sprite VTT and player can play
+  if (meta && meta.sprite) {
+    const enablePreview = () => attachSpritePreview(player, meta.sprite);
+    if (player.readyState && player.readyState() >= 2) {
+      enablePreview();
+    } else {
+      player.one('canplay', enablePreview);
+    }
   }
 }
 
-function parseVtt(text, hash) {
-  const lines = text.trim().split(/\r?\n/);
-  const cues = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].includes('-->')) {
-      const [start, end] = lines[i].split(' --> ').map(timeToSeconds);
-      const urlLine = lines[++i];
-      const match = urlLine.match(/(.+?)#xywh=(\d+),(\d+),(\d+),(\d+)/);
-      if (match) {
-        cues.push({
-          start,
-          end,
-          url: `/thumbs/${hash}/${match[1]}`,
-          x: parseInt(match[2], 10),
-          y: parseInt(match[3], 10),
-          w: parseInt(match[4], 10),
-          h: parseInt(match[5], 10),
+async function initialisePlayback(id) {
+  const session = await startSession(id);
+  let hlsUrl = session.hlsUrl;
+  const token = session.token || null;
+  // Avoid early 404s: wait for ready (with cap), then attach
+  if (!hlsUrl && token && session.status === 'processing') {
+    requestSpinnerShow(false);
+    try {
+      // Wait indefinitely for ready; do not attach early
+      const ready = await waitForReadySSE(token, { timeoutMs: 0 });
+      if (ready && ready.hlsUrl) hlsUrl = ready.hlsUrl;
+    } catch {
+      // Strict wait-then-attach: do not attach early
+      try {
+        const ready2 = await pollUntilReady(token, {
+          intervalMs: 500,
+          maxMs: 20000,
         });
+        if (ready2 && ready2.hlsUrl) hlsUrl = ready2.hlsUrl;
+      } catch {
+        // give up gracefully
       }
     }
   }
-  return cues;
-}
-
-function timeToSeconds(timeStr) {
-  const parts = timeStr.split(':');
-  const seconds = parts.pop();
-  return (
-    parseInt(parts[0], 10) * 3600 +
-    parseInt(parts[1], 10) * 60 +
-    parseFloat(seconds)
-  );
-}
-
-function secondsToTime(time) {
-  const m = Math.floor(time / 60);
-  const s = Math.floor(time % 60);
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function onProgressMouseMove(e) {
-  if (!video.duration || vttCues.length === 0) return;
-
-  const rect = video.getBoundingClientRect();
-  const percent = (e.clientX - rect.left) / rect.width;
-  const hoverTime = video.duration * percent;
-
-  const cue = vttCues.find((c) => hoverTime >= c.start && hoverTime < c.end);
-  if (!cue) {
-    previewEl.classList.remove('visible');
+  // Only attach when we have a confirmed servable playlist
+  if (!hlsUrl) {
+    console.error('Unable to prepare video: missing HLS URL after waiting');
+    requestSpinnerHide();
     return;
   }
-
-  previewThumbEl.style.backgroundImage = `url(${cue.url})`;
-  previewThumbEl.style.backgroundPosition = `-${cue.x}px -${cue.y}px`;
-  previewThumbEl.style.width = `${cue.w}px`;
-  previewThumbEl.style.height = `${cue.h}px`;
-  previewTimeEl.textContent = secondsToTime(hoverTime);
-
-  // Position the preview box
-  const previewWidth = previewEl.offsetWidth;
-  let previewLeft = e.clientX - rect.left - previewWidth / 2;
-  // Clamp to video bounds
-  previewLeft = Math.max(0, Math.min(previewLeft, rect.width - previewWidth));
-
-  previewEl.style.left = `${previewLeft}px`;
-  previewEl.classList.add('visible');
+  currentSessionToken = token;
+  currentHlsUrl = hlsUrl;
+  playlistRetryAttempts = 0;
+  player.src({ src: currentHlsUrl, type: 'application/x-mpegURL' });
+  requestSpinnerHide();
 }
 
-function onProgressMouseLeave() {
-  previewEl.classList.remove('visible');
-}
-
-// --- bootstrap ---
-(async () => {
+(function bootstrap() {
   const id = getId();
   if (!id) {
     alert('Missing id');
     return;
   }
 
-  bindKeys();
+  // initial spinner (no debounce)
+  requestSpinnerShow(true);
   initCardEventListeners(listEl, state);
-
-  // Fetch metadata to check for sprites
-  try {
-    const metaRes = await fetch(`/api/meta?id=${id}`);
-    const meta = await metaRes.json();
-    if (meta.sprite) {
-      initSpritePreview(meta.sprite);
-    }
-  } catch (e) {
-    console.warn('Could not fetch video metadata', e);
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', () => {
+      relatedPage += 1;
+      renderRelated();
+    });
   }
 
-  // Start “More videos” early to improve perceived responsiveness:
-  // don’t await it — let it render as soon as it returns.
   loadRelated(id);
-
-  // Then attach playback
-  await play(id);
-
-  // Additional safety: hide loading once video is ready
-  video.addEventListener('canplay', hideLoading, { once: true });
-  video.addEventListener('loadeddata', hideLoading, { once: true });
+  let started = false;
+  fetchMetadata(id).then((meta) => {
+    initVideoJs(meta);
+    if (started) return;
+    started = true;
+    initialisePlayback(id).catch((err) => {
+      // Soft-fail: log and keep spinner, do not crash
+      console.warn('Playback initialisation deferred', err?.message || err);
+    });
+  });
 })();
