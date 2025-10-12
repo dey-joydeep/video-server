@@ -240,7 +240,13 @@ function initVideoJs(meta) {
     playlistRetryAttempts += 1;
     requestSpinnerShow(false);
     setTimeout(() => {
-      player.src({ src: currentHlsUrl, type: 'application/x-mpegURL' });
+      player.src({
+        src:
+          typeof currentHlsUrl === 'string' && currentHlsUrl.indexOf('?') === -1
+            ? currentHlsUrl + '?v=' + Date.now()
+            : currentHlsUrl,
+        type: 'application/x-mpegURL',
+      });
     }, 800);
   });
 
