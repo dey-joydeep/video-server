@@ -29,7 +29,6 @@ const SPINNER_SHOW_DELAY_MS = 150;
 const SPINNER_MIN_VISIBLE_MS = 350;
 let playlistRetryAttempts = 0;
 const MAX_PLAYLIST_RETRIES = 5;
-let currentSessionToken = null;
 let currentHlsUrl = null;
 
 function getId() {
@@ -118,33 +117,7 @@ async function loadRelated(excludeId) {
   }
 }
 
-async function pollSessionStatus(token, onTick) {
-  const pollInterval = 2000;
-  return new Promise((resolve, reject) => {
-    const intervalId = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/session/status?token=${token}`);
-        if (!res.ok) {
-          clearInterval(intervalId);
-          reject(new Error(`Status check failed: ${res.statusText}`));
-          return;
-        }
-        const data = await res.json();
-        if (typeof onTick === 'function') onTick(data);
-        if (data.status === 'ready') {
-          clearInterval(intervalId);
-          resolve(data);
-        } else if (data.status === 'error') {
-          clearInterval(intervalId);
-          reject(new Error('Video processing failed.'));
-        }
-      } catch (err) {
-        clearInterval(intervalId);
-        reject(err);
-      }
-    }, pollInterval);
-  });
-}
+// (removed unused pollSessionStatus; SSE/polling handled in services/session.js)
 
 // superseded by services/session.js
 
@@ -170,7 +143,7 @@ function isTimeBuffered(p, t) {
       const end = r.end(i) + fudge;
       if (t >= start && t <= end) return true;
     }
-  } catch (e) {
+  } catch {
     /* ignore */
   }
   return false;
@@ -209,7 +182,9 @@ function initVideoJs(meta) {
     // Pin aspect ratio so frame stays consistent regardless of source dimensions
     try {
       if (typeof player.aspectRatio === 'function') player.aspectRatio('16:9');
-    } catch {}
+    } catch {
+      void 0;
+    }
     // Use standard Video.js time controls; no DOM manipulation
     if (typeof player.hotkeys === 'function') {
       player.hotkeys({
@@ -226,7 +201,9 @@ function initVideoJs(meta) {
     player.one('loadedmetadata', () => {
       try {
         if ((player.duration() || 0) > 0) player.currentTime(0);
-      } catch {}
+      } catch {
+        void 0;
+      }
     });
   });
 
@@ -266,7 +243,6 @@ function initVideoJs(meta) {
       player.src({ src: currentHlsUrl, type: 'application/x-mpegURL' });
     }, 800);
   });
-
 
   // Hook sprite preview once we know sprite VTT and player can play
   if (meta && meta.sprite) {
@@ -309,7 +285,6 @@ async function initialisePlayback(id) {
     requestSpinnerHide();
     return;
   }
-  currentSessionToken = token;
   currentHlsUrl = hlsUrl;
   playlistRetryAttempts = 0;
   player.src({ src: currentHlsUrl, type: 'application/x-mpegURL' });
