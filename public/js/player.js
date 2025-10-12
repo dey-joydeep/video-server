@@ -218,6 +218,10 @@ function initVideoJs(meta) {
   });
 
   player.ready(() => {
+    // Pin aspect ratio so frame stays consistent regardless of source dimensions
+    try {
+      if (typeof player.aspectRatio === 'function') player.aspectRatio('16:9');
+    } catch {}
     if (typeof player.hotkeys === 'function') {
       player.hotkeys({
         volumeStep: 0.05,
