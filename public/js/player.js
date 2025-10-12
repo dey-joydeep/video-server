@@ -2,6 +2,7 @@ import { renderCards, initCardEventListeners } from './card.js';
 import { attachSpritePreview } from './sprite-preview.js';
 import { state } from './state.js';
 import './plugins/seek-buttons.js';
+// default Video.js duration display
 import {
   startSession,
   waitForReadySSE,
@@ -158,26 +159,7 @@ async function fetchMetadata(id) {
   }
 }
 
-function formatDuration(seconds) {
-  const total = Math.floor(seconds);
-  const hrs = Math.floor(total / 3600);
-  const mins = Math.floor((total % 3600) / 60);
-  const secs = total % 60;
-  if (hrs > 0) {
-    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-function updateMetaDisplay(meta) {
-  if (!meta) return;
-  const container = document.querySelector('.player');
-  if (!container) return;
-  const durationDisplay = container.querySelector('.meta-duration');
-  if (meta.durationMs && durationDisplay) {
-    durationDisplay.textContent = formatDuration(meta.durationMs / 1000);
-  }
-}
+// (duration display is handled by Video.js controlBar; no custom formatter)
 
 function isTimeBuffered(p, t) {
   try {
@@ -202,12 +184,18 @@ function initVideoJs(meta) {
     preload: 'auto',
     fluid: true,
     liveui: false,
+    inactivityTimeout: 0,
     controlBar: {
-      playToggle: true,
-      progressControl: true,
-      volumePanel: true,
-      fullscreenToggle: true,
-      remainingTimeDisplay: false,
+      children: [
+        'playToggle',
+        'currentTimeDisplay',
+        'timeDivider',
+        'durationDisplay',
+        'progressControl',
+        'volumePanel',
+        'fullscreenToggle',
+      ],
+      volumePanel: { inline: true },
     },
     html5: {
       vhs: {
@@ -222,6 +210,7 @@ function initVideoJs(meta) {
     try {
       if (typeof player.aspectRatio === 'function') player.aspectRatio('16:9');
     } catch {}
+    // Use standard Video.js time controls; no DOM manipulation
     if (typeof player.hotkeys === 'function') {
       player.hotkeys({
         volumeStep: 0.05,
@@ -278,7 +267,6 @@ function initVideoJs(meta) {
     }, 800);
   });
 
-  updateMetaDisplay(meta);
 
   // Hook sprite preview once we know sprite VTT and player can play
   if (meta && meta.sprite) {

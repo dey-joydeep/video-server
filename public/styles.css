@@ -168,6 +168,10 @@ main.wrap {
   display: block !important;
 }
 
+
+
+/* Use Video.js skin defaults for time displays and labels */
+
 .player-meta {
   display: flex;
   justify-content: flex-end;

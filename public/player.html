@@ -6,9 +6,9 @@
     <title>Player</title>
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <!-- Your existing stylesheet -->
-    <link rel="stylesheet" href="./styles.css?v=42" />
+    <!-- Load Video.js skin first, then app styles -->
     <link rel="stylesheet" href="./vendor/video-js.min.css" />
+    <link rel="stylesheet" href="./styles.css?v=42" />
     <script src="./vendor/video.min.js"></script>
     <script src="./vendor/videojs.hotkeys.min.js"></script>
   </head>
@@ -49,9 +49,6 @@
             class="loading-overlay hidden"
             aria-label="Loading"
           ></div>
-        </div>
-        <div class="player-meta">
-          <span class="meta-duration"></span>
         </div>
       </section>
 
