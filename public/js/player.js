@@ -174,7 +174,7 @@ function initVideoJs(meta) {
       nativeAudioTracks: false,
       nativeVideoTracks: false,
       vhs: {
-        overrideNative: true,
+        overrideNative: !videojs.browser.IS_SAFARI,
         withCredentials: false,
         enableLowInitialPlaylist: true,
         cacheEncryptionKeys: true,
