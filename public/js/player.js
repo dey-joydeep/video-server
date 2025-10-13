@@ -171,9 +171,13 @@ function initVideoJs(meta) {
       volumePanel: { inline: true },
     },
     html5: {
+      nativeAudioTracks: false,
+      nativeVideoTracks: false,
       vhs: {
-        overrideNative: !videojs.browser.IS_SAFARI,
+        overrideNative: true,
         withCredentials: false,
+        enableLowInitialPlaylist: true,
+        cacheEncryptionKeys: true,
       },
     },
   });
