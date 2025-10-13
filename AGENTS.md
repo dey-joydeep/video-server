@@ -27,3 +27,13 @@ Author imperative, scope-limited commits (e.g., `Add scrubber sprite hover guard
 ## Security & Configuration Tips
 
 Copy `.env.example` to `.env` and set `VIDEO_ROOT`, network binding (`BIND`, `PORT`), and optional explicit `FFMPEG_PATH`/`FFPROBE_PATH` before running sync/process commands. `.hls/`, `thumbs/`, `data/`, and `logs/` can expose private filenames or media snippets—exclude them from commits and scrub artifacts before sharing logs externally.
+
+## Agent Commit Workflow
+
+- Propose-first: Before changing history, show `git diff --stat` and the planned grouping (backend, frontend, docs/formatting). Provide targeted hunks on request.
+- Stage by group: Path‑scoped staging per group; avoid bundling unrelated changes. Formatting-only changes go in their own commit.
+- Lint/check before commit: Run `npm run lint` (and minimal build checks if relevant). If hooks fail, stop and report—no force commits.
+- Message preview: Draft a Conventional Commit message (e.g., `feat(hls): …`) and wait for explicit approval of the text.
+- Commit only on approval: Do not `git commit` unless the user says “commit” (or “commit staged”).
+- Verify after commit: Report the commit hash and files included. Never push or tag without explicit approval.
+- Reverts/Resets: Do not rewrite history unless asked. If needed, propose the safest approach (revert vs reset) and wait for approval.
