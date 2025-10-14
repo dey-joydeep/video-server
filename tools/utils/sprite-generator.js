@@ -272,8 +272,8 @@ async function generateSpritesForFile({ relPath, rootDir, hash }) {
 export async function generateSprites() {
   logger.info('[SPRITE] Starting sprite generation process...');
 
-  const index = loadIndex(config.DATA_DIR, config.VIDEO_ROOT);
-  const videos = Object.entries(index.files || {});
+  const { byRel } = loadIndex();
+  const videos = Object.entries(byRel);
 
   logger.info(`[SPRITE] Found ${videos.length} videos to process.`);
 

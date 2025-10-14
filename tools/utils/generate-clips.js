@@ -20,8 +20,7 @@ const VIDEO_ROOT = path.resolve(process.env.VIDEO_ROOT || CWD);
 const THUMBS_DIR = path.resolve(
   process.env.THUMBS_DIR || path.join(CWD, 'thumbs')
 );
-/** @constant {string} DATA_DIR - The absolute path to the directory where application data (e.g., index) is stored. */
-const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(CWD, 'data'));
+// DATA_DIR not used; index is loaded via lib/db helper
 /** @constant {string} FFMPEG_PATH - The path to the ffmpeg executable. */
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
 /** @constant {string} SUFFIX_PREVIEW_CLIP - The filename suffix for generated preview clips. */
@@ -55,8 +54,8 @@ function run(cmd, args) {
  */
 export async function generateClips() {
   logger.info('[CLIP] Starting preview clip generation process...');
-  const db = loadIndex(DATA_DIR, VIDEO_ROOT);
-  const videos = Object.entries(db.files);
+  const { byRel } = loadIndex();
+  const videos = Object.entries(byRel);
 
   if (videos.length === 0) {
     logger.warn('[CLIP] No videos found in the index. Run sync first.');
@@ -66,7 +65,7 @@ export async function generateClips() {
   logger.info(`[CLIP] Found ${videos.length} videos to process.`);
 
   for (const [i, [relPath, videoData]] of videos.entries()) {
-    const { hash, durationMs } = videoData;
+    const { hash, durationMs } = videoData || {};
     if (!hash || !durationMs) {
       logger.warn(`[CLIP] Skipping video with no hash or duration: ${relPath}`);
       continue;

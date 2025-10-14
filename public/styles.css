@@ -159,6 +159,56 @@ main.wrap {
   width: 100%;
   height: auto;
 }
+
+/* Ensure time displays are visible in all modes and layouts */
+.video-js .vjs-current-time,
+.video-js .vjs-duration,
+.video-js .vjs-time-divider {
+  display: inline-flex !important;
+  width: auto !important;
+  min-width: 0 !important; /* override skin's 2em gap */
+  padding: 0 1.5px !important;
+  margin: 0 !important;
+}
+.video-js.vjs-layout-small .vjs-current-time,
+.video-js.vjs-layout-small .vjs-duration,
+.video-js.vjs-layout-small .vjs-time-divider,
+.video-js.vjs-layout-tiny .vjs-current-time,
+.video-js.vjs-layout-tiny .vjs-duration,
+.video-js.vjs-layout-tiny .vjs-time-divider,
+.video-js.vjs-layout-x-small .vjs-current-time,
+.video-js.vjs-layout-x-small .vjs-duration,
+.video-js.vjs-layout-x-small .vjs-time-divider {
+  display: inline-flex !important;
+}
+/* Narrow all time controls' padding to avoid excessive gaps */
+.video-js .vjs-time-control {
+  padding: 0 1.5px !important;
+}
+/* Ensure inner div of divider doesn’t add extra width */
+.video-js .vjs-time-divider > div {
+  display: inline-block;
+  width: auto;
+  padding: 0;
+  margin: 0;
+}
+/* If the skin briefly toggles vjs-live, still show the time row */
+.video-js.vjs-live .vjs-time-control,
+.video-js.vjs-live .vjs-time-divider {
+  display: inline-flex !important;
+}
+/* Visually hide control labels while keeping them for screen readers */
+.video-js .vjs-control-text {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 /* Force VOD UI: hide any live controls in the skin */
 .video-js .vjs-live-control,
 .video-js .vjs-live-display {

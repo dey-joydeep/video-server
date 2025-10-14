@@ -7,6 +7,8 @@ import { runSync } from './utils/sync.js';
 import { generateThumbnails } from './utils/generate-thumbnails.js';
 import { generateSprites } from './utils/sprite-generator.js';
 import { generateClips } from './utils/generate-clips.js';
+import { generateHeadStart } from './utils/generate-headstart.js';
+import { generateHlsVod } from './utils/generate-hls.js';
 
 const logger = createLogger({
   dirname: 'logs/tools-log',
@@ -38,11 +40,13 @@ async function main() {
     generateThumbnails(),
     generateSprites(),
     generateClips(),
+    generateHeadStart(),
+    generateHlsVod(),
   ]);
 
   let allSuccessful = true;
   results.forEach((result, index) => {
-    const name = ['Thumbnails', 'Sprites', 'Clips'][index];
+    const name = ['Thumbnails', 'Sprites', 'Clips', 'HeadStart', 'HlsVod'][index];
     if (result.status === 'fulfilled') {
       logger.info(`[MAIN] ${name} generation completed successfully.`);
     } else {

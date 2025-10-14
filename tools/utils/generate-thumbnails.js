@@ -17,8 +17,8 @@ const logger = createLogger({
  */
 export async function generateThumbnails() {
   logger.info('[THUMB] Starting thumbnail generation process...');
-  const db = loadIndex(config.DATA_DIR, config.VIDEO_ROOT);
-  const videos = Object.entries(db.files);
+  const { byRel } = loadIndex();
+  const videos = Object.entries(byRel);
 
   if (videos.length === 0) {
     logger.warn('[THUMB] No videos found in the index. Run sync first.');
