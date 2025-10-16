@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import config from '../lib/config.js';
 import { createLogger } from '../lib/logger.js';
 
 import { runSync } from './utils/sync.js';
@@ -15,55 +18,80 @@ const logger = createLogger({
   filename: 'main-%DATE%.log',
 });
 
+const LOCK_FILE = path.join(config.TMP_DIR || 'tmp', 'main_process.lock');
+
 /**
  * Main orchestration function for the video processing pipeline.
  * It performs metadata synchronization, then generates thumbnails, sprites, and clips in parallel.
  */
 async function main() {
-  logger.info('[MAIN] Starting full processing pipeline...');
-  const startTime = Date.now();
-
+  // Acquire lock
+  let lockHandle;
   try {
-    logger.info('[MAIN] Running metadata sync...');
-    await runSync();
-    logger.info('[MAIN] Metadata sync complete.');
+    lockHandle = fs.openSync(LOCK_FILE, 'wx');
+    fs.writeFileSync(lockHandle, String(process.pid));
+    logger.info('[MAIN] Process lock acquired.');
   } catch (e) {
-    logger.error('[MAIN] Metadata sync failed catastrophically.', e);
-    process.exit(1); // Exit if sync fails, as generators depend on it
+    if (e.code === 'EEXIST') {
+      logger.error('[MAIN] Lock file exists. Another process is likely running. Exiting.');
+      return;
+    }
+    throw e;
   }
 
-  logger.info(
-    '[MAIN] Starting parallel asset generation (thumbnails, sprites, clips)...'
-  );
+  try {
+    logger.info('[MAIN] Starting full processing pipeline...');
+    const startTime = Date.now();
 
-  const results = await Promise.allSettled([
-    generateThumbnails(),
-    generateSprites(),
-    generateClips(),
-    generateHeadStart(),
-    generateHlsVod(),
-  ]);
-
-  let allSuccessful = true;
-  results.forEach((result, index) => {
-    const name = ['Thumbnails', 'Sprites', 'Clips', 'HeadStart', 'HlsVod'][index];
-    if (result.status === 'fulfilled') {
-      logger.info(`[MAIN] ${name} generation completed successfully.`);
-    } else {
-      allSuccessful = false;
-      logger.error(`[MAIN] ${name} generation failed:`, result.reason);
+    try {
+      logger.info('[MAIN] Running metadata sync...');
+      await runSync();
+      logger.info('[MAIN] Metadata sync complete.');
+    } catch (e) {
+      logger.error('[MAIN] Metadata sync failed catastrophically.', e);
+      process.exit(1); // Exit if sync fails, as generators depend on it
     }
-  });
 
-  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-  if (allSuccessful) {
     logger.info(
-      `[MAIN] Full processing pipeline finished successfully in ${duration}s.`
+      '[MAIN] Starting parallel asset generation (thumbnails, sprites, clips)...'
     );
-  } else {
-    logger.error(
-      `[MAIN] Full processing pipeline finished in ${duration}s with one or more errors.`
-    );
+
+    const results = await Promise.allSettled([
+      generateThumbnails(),
+      generateSprites(),
+      generateClips(),
+      generateHeadStart(),
+      generateHlsVod(),
+    ]);
+
+    let allSuccessful = true;
+    results.forEach((result, index) => {
+      const name = ['Thumbnails', 'Sprites', 'Clips', 'HeadStart', 'HlsVod'][index];
+      if (result.status === 'fulfilled') {
+        logger.info(`[MAIN] ${name} generation completed successfully.`);
+      } else {
+        allSuccessful = false;
+        logger.error(`[MAIN] ${name} generation failed:`, result.reason);
+      }
+    });
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    if (allSuccessful) {
+      logger.info(
+        `[MAIN] Full processing pipeline finished successfully in ${duration}s.`
+      );
+    } else {
+      logger.error(
+        `[MAIN] Full processing pipeline finished in ${duration}s with one or more errors.`
+      );
+    }
+  } finally {
+    // Release lock
+    if (lockHandle) {
+      fs.closeSync(lockHandle);
+      fs.unlinkSync(LOCK_FILE);
+      logger.info('[MAIN] Process lock released.');
+    }
   }
 }
 

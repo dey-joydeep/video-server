@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { loadIndex } from '../../lib/db.js';
 import config from '../../lib/config.js';
@@ -64,6 +65,14 @@ export async function generateHlsVod() {
     }
     ensureDir(outDir);
 
+    const keyPath = path.join(outDir, 'key.bin');
+    const keyInfoPath = path.join(outDir, 'keyinfo');
+    if (!fs.existsSync(keyPath)) {
+      fs.writeFileSync(keyPath, crypto.randomBytes(16));
+    }
+    const keyUrl = `/hlskey/${hash}/key.bin`;
+    fs.writeFileSync(keyInfoPath, `${keyUrl}\n${keyPath}\n`);
+
     // Build copy-first VOD
     const argsCopy = [
       '-hide_banner',
@@ -80,9 +89,8 @@ export async function generateHlsVod() {
       '-hls_time', String(segSec),
       '-hls_list_size', '0',
       '-hls_flags', 'independent_segments+split_by_time',
-      '-hls_playlist_type', 'vod',
-      '-hls_segment_type', 'mpegts',
       '-hls_segment_filename', path.join(outDir, 'seg_%05d.ts'),
+      '-hls_key_info_file', keyInfoPath,
       master,
     ];
 
@@ -100,6 +108,7 @@ export async function generateHlsVod() {
       '-hls_flags', 'independent_segments+split_by_time',
       '-hls_playlist_type', 'vod',
       '-hls_segment_filename', path.join(outDir, 'seg_%05d.ts'),
+      '-hls_key_info_file', keyInfoPath,
       master,
     ];
 
