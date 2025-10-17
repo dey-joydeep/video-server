@@ -8,10 +8,10 @@ export async function fetchAndParseVtt(url) {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load VTT: ${res.status}`);
   const text = await res.text();
-  return parseVtt(text, url);
+  return parseVtt(text, res.url);
 }
 
-export function parseVtt(text) {
+export function parseVtt(text, vttUrl) {
   const lines = text.split(/\r?\n/);
   const cues = [];
   let i = 0;
@@ -47,8 +47,9 @@ export function parseVtt(text) {
     if (!payload) continue;
     // Expect something like: path/to/sprite.jpg#xywh=10,20,160,90
     const xy = payload.match(/#xywh=(\d+),(\d+),(\d+),(\d+)/);
-    const sheet = payload.split('#')[0];
-    if (!xy || !sheet) continue;
+    const sheetRel = payload.split('#')[0];
+    if (!xy || !sheetRel) continue;
+    const sheet = new URL(sheetRel, vttUrl).href;
     cues.push({
       start: toSeconds(startStr),
       end: toSeconds(endStr),

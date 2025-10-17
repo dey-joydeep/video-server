@@ -300,12 +300,23 @@ main.wrap {
 .sprite-preview.hidden {
   display: none;
 }
-.sprite-preview-inner {
+.sprite-frame {
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  background-color: #000; /* in case image not loaded yet */
+  background-color: #000;
+  overflow: hidden;
+  padding: 4px 4px 0;
+}
+.sprite-preview-inner {
   background-size: auto;
+}
+
+.sprite-time {
+    padding: 4px 6px 2px;
+    color: #fff;
+    font-size: 13px;
+    text-align: center;
 }
 
 /* Seek buttons styling */
@@ -317,6 +328,10 @@ main.wrap {
 }
 .vjs-seek-button {
   color: var(--fg);
+}
+
+.video-js .vjs-progress-control:hover .vjs-time-tooltip {
+  display: none !important;
 }
 
 /* Responsive / orientation-aware tweaks */

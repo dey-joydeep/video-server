@@ -20,10 +20,20 @@ export async function attachSpritePreview(player, vttUrl) {
 
   const tooltip = document.createElement('div');
   tooltip.className = 'sprite-preview hidden';
+
+  const frame = document.createElement('div');
+  frame.className = 'sprite-frame';
+
   // inner container makes sizing predictable
   const inner = document.createElement('div');
   inner.className = 'sprite-preview-inner';
-  tooltip.appendChild(inner);
+  frame.appendChild(inner);
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'sprite-time';
+  frame.appendChild(timeEl);
+
+  tooltip.appendChild(frame);
   progressEl.appendChild(tooltip);
 
   let activated = false;
@@ -64,6 +74,9 @@ export async function attachSpritePreview(player, vttUrl) {
     inner.style.backgroundPosition = `-${cue.x}px -${cue.y}px`;
     inner.style.backgroundRepeat = 'no-repeat';
     inner.style.imageRendering = 'auto';
+
+    const timeResult = new Date(t * 1000).toISOString().slice(11, 19);
+    timeEl.innerText = timeResult.startsWith('00:') ? timeResult.slice(3) : timeResult;
   }
 
   function onMouseMove(e) {

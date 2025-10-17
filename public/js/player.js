@@ -168,6 +168,7 @@ function initVideoJs(meta) {
         'volumePanel',
         'fullscreenToggle',
       ],
+      progressControl: { keepTooltipsInside: true },
       volumePanel: { inline: true },
     },
     html5: {
@@ -252,6 +253,18 @@ function initVideoJs(meta) {
         type: 'application/x-mpegURL',
       });
     }, 800);
+  });
+
+  // Remove the default time tooltip on first play
+  player.one('play', () => {
+    try {
+      const tooltip = player.el().querySelector('.vjs-time-tooltip');
+      if (tooltip) {
+        tooltip.remove();
+      }
+    } catch (e) {
+      console.warn('Could not remove vjs-time-tooltip', e);
+    }
   });
 
   // Hook sprite preview once we know sprite VTT and player can play
