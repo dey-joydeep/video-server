@@ -1,11 +1,16 @@
-// Incremental sync: scan VIDEO_ROOT, detect renames, generate thumbs, update JSON DB.
-// Keeps a single fixed progress line at the top; prints file logs beneath it.
-// Distinguishes cached (pre-run) vs duplicate (same hash seen earlier this run).
+/**
+ * @fileoverview Incremental sync script for the video library.
+ * Scans the video root directory, identifies new, moved, or changed files,
+ * and updates a central JSON database (`thumbs-index.json`) with metadata.
+ * This script is designed to be run offline as a batch process.
+ * It now includes a step to probe for video/audio codecs for new files.
+ */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 import config from '../../lib/config.js';
 import { loadIndex, saveIndex } from '../../lib/db.js';
@@ -13,6 +18,48 @@ import { hashFile } from '../../lib/hash.js';
 import { walkVideos } from '../../lib/scan.js';
 
 import { ffprobeDurationMs } from '../../lib/ffmpeg.js';
+
+/**
+ * Probes the codec name of a specific stream (video or audio) in a media file.
+ * @param {string} ffprobePath - The path to the ffprobe executable.
+ * @param {string} input - The path to the input media file.
+ * @param {string} which - The stream to probe (e.g., 'v:0' for video, 'a:0' for audio).
+ * @returns {Promise<string|null>} The codec name or null if not found.
+ */
+async function ffprobeCodec(ffprobePath, input, which) {
+  return new Promise((resolve) => {
+    const args = [
+      '-v',
+      'error',
+      '-select_streams',
+      which,
+      '-show_entries',
+      'stream=codec_name',
+      '-of',
+      'csv=p=0',
+      input,
+    ];
+    const p = spawn(ffprobePath, args, { windowsHide: true });
+    let out = '';
+    p.stdout.on('data', (d) => (out += d.toString()));
+    p.on('close', () => resolve((out.trim() || '').toLowerCase() || null));
+    p.on('error', () => resolve(null));
+  });
+}
+
+/**
+ * Probes the video and audio codec names of a media file.
+ * @param {string} ffprobePath - The path to the ffprobe executable.
+ * @param {string} input - The path to the input media file.
+ * @returns {Promise<{vcodec: string|null, acodec: string|null}>} An object with video and audio codec names.
+ */
+async function ffprobeStreams(ffprobePath, input) {
+  const [vcodec, acodec] = await Promise.all([
+    ffprobeCodec(ffprobePath, input, 'v:0'),
+    ffprobeCodec(ffprobePath, input, 'a:0'),
+  ]);
+  return { vcodec, acodec };
+}
 
 // ---- Progress line helpers (keeps one status line at the top) ----
 let _linesPrinted = 0; // number of log lines printed under the status
@@ -75,8 +122,13 @@ function logLine(s) {
 }
 
 /**
- * Runs the incremental synchronization process for the video library.
- * Scans for new/changed files, detects renames, and updates the JSON index.
+ * Runs the main incremental synchronization process.
+ * 1. Scans all video files in the VIDEO_ROOT.
+ * 2. Compares against the existing database to find new or changed files.
+ * 3. For new/changed files, generates a content hash.
+ * 4. Uses the hash to detect renames of existing files.
+ * 5. For new files, probes for duration and video/audio codecs.
+ * 6. Updates and saves the JSON database.
  * @param {object} [opts={}] - Options for the sync process.
  * @param {string} [opts.VIDEO_ROOT] - Override the video root directory from config.
  * @returns {Promise<object>} A promise that resolves with the updated database object.
@@ -216,7 +268,20 @@ export async function runSync(opts = {}) {
       }
     }
 
-    const rec = { hash: fileHash, size, mtimeMs, durationMs };
+    let vcodec = existing?.vcodec ?? null;
+    let acodec = existing?.acodec ?? null;
+    if (vcodec === null) {
+      try {
+        logLine(`• Probing codecs for ${rel}`);
+        const codecs = await ffprobeStreams(config.FFPROBE_PATH, full);
+        vcodec = codecs.vcodec;
+        acodec = codecs.acodec;
+      } catch (e) {
+        logLine(`⚠️  ffprobe (streams) failed for ${rel}: ${e.message}`);
+      }
+    }
+
+    const rec = { hash: fileHash, size, mtimeMs, durationMs, vcodec, acodec };
     oldFiles[rel] = rec;
 
     // Finished this file
