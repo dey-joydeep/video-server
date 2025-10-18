@@ -92,3 +92,4 @@ This guide provides quick references for developing the video server project. Fo
   5. You must say "approved" to approve the message text.
   6. After your approval, I will construct and propose the `git commit` command with the approved message for your final approval.
   7. I will use single-line or multi-line messages as appropriate for the complexity of the changes.
+- **Confirmation Before Modification:** After proposing a plan to modify code, I will always wait for your explicit confirmation (e.g., "yes", "proceed", "approved") before executing the changes. I will not proceed based on implicit agreement or by stating my intent to proceed.
