@@ -11,7 +11,7 @@
 import { renderCards, initCardEventListeners } from './card.js';
 import { attachSpritePreview } from './sprite-preview.js';
 import { state } from './state.js';
-import './plugins/seek-buttons.js';
+
 import {
   startSession,
   waitForReadySSE,
@@ -229,17 +229,27 @@ function initVideoJs(meta) {
     inactivityTimeout: 0,
     controlBar: {
       children: [
+        'progressControl',
         'playToggle',
+        'skipBackward',
+        'skipForward',
         'currentTimeDisplay',
         'timeDivider',
         'durationDisplay',
-        'progressControl',
         'volumePanel',
+        'spacer',
+        'playbackRateMenuButton',
+        'pictureInPictureToggle',
         'fullscreenToggle',
       ],
       progressControl: { keepTooltipsInside: true },
       volumePanel: { inline: true },
+      skipButtons: {
+        forward: 10,
+        backward: 10,
+      },
     },
+    playbackRates: [0.5, 1, 1.5, 2],
     html5: {
       nativeAudioTracks: false,
       nativeVideoTracks: false,
@@ -266,9 +276,7 @@ function initVideoJs(meta) {
         fullscreenKey: (e) => e.key === 'f' || e.key === 'F',
       });
     }
-    if (typeof player.seekButtons === 'function') {
-      player.seekButtons({ back: 10, forward: 10 });
-    }
+
     player.one('loadedmetadata', () => {
       try {
         if ((player.duration() || 0) > 0) player.currentTime(0);

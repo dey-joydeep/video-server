@@ -218,6 +218,17 @@ main.wrap {
   display: block !important;
 }
 
+/* New: Force two-row layout for controls, with timeline on top */
+.video-js .vjs-control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+.video-js .vjs-progress-control {
+  width: 100%;
+  height: 2px; /* Use 2px height */
+}
+
 
 
 /* Use Video.js skin defaults for time displays and labels */
@@ -530,4 +541,22 @@ input[type='checkbox']:focus-visible,
 input[type='range']:focus-visible {
   outline: 2px solid #4dabf7;
   outline-offset: 2px;
+}
+
+/* Custom styles for native skip buttons */
+.vjs-skip-backward-10 .vjs-icon-placeholder::before,
+.vjs-skip-forward-10 .vjs-icon-placeholder::before {
+  font-family: sans-serif; /* Use a standard font, not the icon font */
+  font-size: 1.2em;
+  line-height: 1.5; /* Adjust vertical alignment */
+}
+.vjs-skip-backward-10 .vjs-icon-placeholder::before {
+  content: '⟲ 10' !important;
+}
+.vjs-skip-forward-10 .vjs-icon-placeholder::before {
+  content: '10 ⟳' !important;
+}
+
+.video-js .vjs-spacer {
+  flex-grow: 1;
 }
