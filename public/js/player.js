@@ -68,6 +68,22 @@ function showPlaybackError(message) {
 }
 
 /**
+ * A centralized function to handle HLS session expiration.
+ * It requests a new session and then attempts to restart playback.
+ */
+async function handleExpiredSession() {
+  console.warn('HLS session expired. Requesting a new session...');
+  const id = getId();
+  try {
+    await initialisePlayback(id);
+    player.play();
+  } catch (e) {
+    console.error('Failed to recover HLS session:', e);
+    showPlaybackError(MSG.ERR.SESSION_RECOVERY_FAILED);
+  }
+}
+
+/**
  * Gets the video ID from the URL query string.
  * @returns {string|null} The video ID.
  */
@@ -328,12 +344,7 @@ function initVideoJs(meta) {
       player.pause();
 
       if (validationStatus === 403) {
-        // Session expired, re-initialize playback to get a new session.
-        console.warn(
-          'HLS session expired on resume. Requesting a new session...'
-        );
-        const id = getId();
-        initialisePlayback(id);
+handleExpiredSession();
       } else if (validationStatus === 404) {
         // Video is no longer available (deleted).
         showPlaybackError(MSG.ERR.VIDEO_UNAVAILABLE);
@@ -356,6 +367,12 @@ function initVideoJs(meta) {
     const err = typeof player.error === 'function' ? player.error() : null;
     if (!err) return;
 
+    // Handle expired session (403 Forbidden) by re-initializing
+    if (err.status === 403) {
+      handleExpiredSession();
+      return; // Stop further error processing
+    }
+
     // If a segment is not found (e.g., deleted during playback), fail immediately.
     if (err.status === 404) {
       return showPlaybackError(MSG.ERR.STREAM_UNAVAILABLE);
@@ -366,9 +383,9 @@ function initVideoJs(meta) {
       return showPlaybackError(MSG.ERR.STREAM_UNAVAILABLE);
     }
 
-    // Retry logic for specific, recoverable errors (e.g., network issues).
+    // Retry logic for other specific, recoverable errors
     // This will not run for our custom error code 10.
-    const shouldRetry = err.code === 2 || err.code === 4;
+    const shouldRetry = err.code === 2 || err.code === 4; // MEDIA_ERR_NETWORK | MEDIA_ERR_SRC_NOT_SUPPORTED
     if (!shouldRetry || !currentHlsUrl) return;
 
     playlistRetryAttempts += 1;
