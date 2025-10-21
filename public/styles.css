@@ -229,8 +229,6 @@ main.wrap {
   height: 2px; /* Use 2px height */
 }
 
-
-
 /* Use Video.js skin defaults for time displays and labels */
 
 .player-meta {
@@ -324,10 +322,10 @@ main.wrap {
 }
 
 .sprite-time {
-    padding: 4px 6px 2px;
-    color: #fff;
-    font-size: 13px;
-    text-align: center;
+  padding: 4px 6px 2px;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
 }
 
 /* Seek buttons styling */
@@ -353,7 +351,8 @@ main.wrap {
     padding-right: 4px;
   }
   .vjs-seek-button .vjs-icon {
-    font-size: 10px;
+    font-size: 1.1em;
+    line-height: 3;
   }
 }
 
@@ -546,9 +545,7 @@ input[type='range']:focus-visible {
 /* Custom styles for native skip buttons */
 .vjs-skip-backward-10 .vjs-icon-placeholder::before,
 .vjs-skip-forward-10 .vjs-icon-placeholder::before {
-  font-family: sans-serif; /* Use a standard font, not the icon font */
-  font-size: 1.2em;
-  line-height: 1.5; /* Adjust vertical alignment */
+  font-family: sans-serif;
 }
 .vjs-skip-backward-10 .vjs-icon-placeholder::before {
   content: '⟲ 10' !important;
@@ -559,4 +556,80 @@ input[type='range']:focus-visible {
 
 .video-js .vjs-spacer {
   flex-grow: 1;
+}
+
+/* New: Unify typography for all text-based controls */
+.video-js .vjs-control-bar .vjs-time-control,
+.video-js .vjs-control-bar .vjs-time-divider,
+.video-js .vjs-control-bar .vjs-duration,
+.video-js .vjs-control-bar .vjs-playback-rate-value,
+.vjs-skip-backward-10 .vjs-icon-placeholder::before,
+.vjs-skip-forward-10 .vjs-icon-placeholder::before {
+  font-family: sans-serif;
+}
+
+/* Desktop-specific font sizing for clarity */
+@media (min-width: 769px) {
+  .video-js .vjs-control-bar .vjs-time-control,
+  .video-js .vjs-control-bar .vjs-time-divider,
+  .video-js .vjs-control-bar .vjs-duration,
+  .video-js .vjs-control-bar .vjs-playback-rate-value,
+  .vjs-skip-backward-10 .vjs-icon-placeholder::before,
+  .vjs-skip-forward-10 .vjs-icon-placeholder::before {
+    font-size: 1.3em;
+    line-height: 2.4;
+  }
+
+  .video-js .vjs-volume-panel {
+    margin-right: 6px !important;
+  }
+  .video-js .vjs-duration {
+    margin-right: 24px !important;
+  }
+}
+
+/* Tablet-specific font sizing */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .video-js .vjs-control-bar .vjs-time-control,
+  .video-js .vjs-control-bar .vjs-time-divider,
+  .video-js .vjs-control-bar .vjs-duration,
+  .video-js .vjs-control-bar .vjs-playback-rate-value,
+  .vjs-skip-backward-10 .vjs-icon-placeholder::before,
+  .vjs-skip-forward-10 .vjs-icon-placeholder::before {
+    font-size: 1.3em;
+    line-height: 2.4;
+  }
+
+  .video-js .vjs-volume-panel {
+    margin-right: 6px !important;
+  }
+  .video-js .vjs-duration {
+    margin-right: 24px !important;
+  }
+}
+
+/* Mobile-specific font sizing */
+@media (max-width: 767px) {
+  .video-js .vjs-control:not(.vjs-progress-control) {
+    width: 3em;
+  }
+  .video-js .vjs-control-bar .vjs-time-control,
+  .video-js .vjs-control-bar .vjs-time-divider,
+  .video-js .vjs-control-bar .vjs-duration,
+  .video-js .vjs-control-bar .vjs-playback-rate-value,
+  .vjs-skip-backward-10 .vjs-icon-placeholder::before,
+  .vjs-skip-forward-10 .vjs-icon-placeholder::before {
+    font-size: 1.1em;
+    line-height: 3;
+  }
+
+  .video-js .vjs-duration {
+    margin-right: 16px !important;
+  }
+
+  .vjs-button > .vjs-icon-placeholder:before {
+    font-size: 1.3em;
+    line-height: 2.3;
+    font-family: 'VideoJS';
+  }
 }
