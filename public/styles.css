@@ -315,12 +315,15 @@ main.wrap {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   background-color: #000;
   overflow: hidden;
-  padding: 4px 4px 0;
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 .sprite-preview-inner {
   background-size: auto;
 }
-
 .sprite-time {
   padding: 4px 6px 2px;
   color: #fff;
