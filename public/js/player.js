@@ -74,9 +74,14 @@ function showPlaybackError(message) {
 async function handleExpiredSession() {
   console.warn('HLS session expired. Requesting a new session...');
   const id = getId();
+  const currentTime = player.currentTime(); // Store current time
   try {
     await initialisePlayback(id);
-    player.play();
+    // Wait for the new source to be loaded before seeking and playing
+    player.one('loadedmetadata', () => {
+      player.currentTime(currentTime);
+      player.play();
+    });
   } catch (e) {
     console.error('Failed to recover HLS session:', e);
     showPlaybackError(MSG.ERR.SESSION_RECOVERY_FAILED);
@@ -344,7 +349,7 @@ function initVideoJs(meta) {
       player.pause();
 
       if (validationStatus === 403) {
-handleExpiredSession();
+        handleExpiredSession();
       } else if (validationStatus === 404) {
         // Video is no longer available (deleted).
         showPlaybackError(MSG.ERR.VIDEO_UNAVAILABLE);
