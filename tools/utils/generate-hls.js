@@ -145,6 +145,8 @@ export async function generateHlsVod() {
       String(segSec), // Segment duration in seconds
       '-hls_list_size',
       '0', // Keep all segments in the playlist (VOD)
+      '-hls_playlist_type',
+      'vod', // Create a VOD (not live) playlist
       '-hls_flags',
       'independent_segments+split_by_time', // Ensure segments can be played independently
       '-hls_segment_filename',
