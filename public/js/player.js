@@ -14,8 +14,6 @@ import { state } from './state.js';
 
 import {
   startSession,
-  waitForReadySSE,
-  pollUntilReady,
 } from './services/session.js';
 
 // --- DOM Elements ---
@@ -329,31 +327,14 @@ async function initialisePlayback(id) {
   try {
     // 1. Start a session.
     const session = await startSession(id);
-    let hlsUrl = session.hlsUrl;
-    const token = session.token || null;
-
-    // 2. If the session is still processing, wait for it to be ready.
-    if (!hlsUrl && token && session.status === 'processing') {
-      try {
-        // First, try waiting with Server-Sent Events.
-        const ready = await waitForReadySSE(token, { timeoutMs: 0 });
-        if (ready && ready.hlsUrl) hlsUrl = ready.hlsUrl;
-      } catch {
-        // As a fallback, poll the status endpoint.
-        const ready2 = await pollUntilReady(token, {
-          intervalMs: 500,
-          maxMs: 20000,
-        });
-        if (ready2 && ready2.hlsUrl) hlsUrl = ready2.hlsUrl;
-      }
-    }
+    const hlsUrl = session.hlsUrl;
 
     // If we still don't have a URL, the video is unavailable.
     if (!hlsUrl) {
       return showPlaybackError(MSG.ERR.VIDEO_UNAVAILABLE);
     }
 
-    // 3. Proactively validate the HLS playlist URL.
+    // 2. Proactively validate the HLS playlist URL.
     const validationStatus = await validateVideoSource(hlsUrl);
     if (validationStatus !== 200) {
       // Handle 404 specifically. Other errors will be handled by the player.

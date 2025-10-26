@@ -8,9 +8,6 @@ import config from './lib/config.js';
 import {
   init as initHls,
   setupHls,
-  getHlsJobStatus,
-  addWatcher,
-  removeWatcher,
 } from './lib/hls.js';
 import { createLogger } from './lib/logger.js';
 import { LOGGING } from './lib/constants.js';
@@ -106,11 +103,6 @@ app.use(
 
 // ---------- APIs ----------
 const services = {
-  hls: {
-    getJobStatus: getHlsJobStatus,
-    addWatcher,
-    removeWatcher,
-  },
   db: {
     loadIndex,
   },
