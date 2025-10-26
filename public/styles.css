@@ -249,44 +249,7 @@ main.wrap {
   margin-right: 6px;
 }
 
-.loading-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 12px 20px;
-  border-radius: 10px;
-  background: rgba(11, 13, 16, 0.85);
-  color: #e5e7eb;
-  font-size: 0; /* hide any text; spinner-only */
-  text-align: center;
-  z-index: 5;
-  pointer-events: none;
-  opacity: 1;
-  visibility: visible;
-  transition:
-    opacity 0.2s ease,
-    visibility 0.2s ease;
-}
 
-.loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* Add a subtle spinner to the loading overlay */
-.loading-overlay::before {
-  content: '';
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  border-radius: 50%;
-  border: 2px solid rgba(229, 231, 235, 0.3);
-  border-top-color: #e5e7eb;
-  animation: vspin 0.8s linear infinite;
-  vertical-align: -3px;
-}
 
 @keyframes vspin {
   from {

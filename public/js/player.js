@@ -23,7 +23,6 @@ const videojs = window.videojs;
 const playerElement = document.getElementById('v');
 const listEl = document.getElementById('list');
 const loadMoreBtn = document.getElementById('moreMore');
-const loadingOverlay = document.getElementById('loading-overlay');
 
 // --- Player State ---
 let player;
@@ -34,14 +33,6 @@ let firstPlayableReached = false;
 let playlistRetryAttempts = 0;
 const MAX_PLAYLIST_RETRIES = 5;
 let currentHlsUrl = null;
-
-// --- Spinner State ---
-let spinnerVisible = false;
-let spinnerVisibleAt = 0;
-let spinnerShowTimer = null;
-let spinnerHideTimer = null;
-const SPINNER_SHOW_DELAY_MS = 150;
-const SPINNER_MIN_VISIBLE_MS = 350;
 
 /**
  * A centralized store for user-facing error messages.
@@ -64,7 +55,6 @@ const MSG = Object.freeze({
 function showPlaybackError(message) {
   player.reset(); // Reset the player to clear the last frame and stop playback
   player.error({ code: 10, message }); // Use a custom error code
-  requestSpinnerHide();
 }
 
 /**
@@ -95,64 +85,6 @@ async function handleExpiredSession() {
 function getId() {
   const u = new URL(window.location.href);
   return u.searchParams.get('id');
-}
-
-// --- UI Functions (Spinner, Loading) ---
-
-function toggleLoading(show) {
-  if (!loadingOverlay) return;
-  if (show) {
-    loadingOverlay.classList.remove('hidden');
-  } else {
-    loadingOverlay.classList.add('hidden');
-  }
-}
-
-function showSpinnerNow() {
-  if (spinnerHideTimer) {
-    clearTimeout(spinnerHideTimer);
-    spinnerHideTimer = null;
-  }
-  spinnerVisible = true;
-  spinnerVisibleAt = Date.now();
-  toggleLoading(true);
-}
-
-function hideSpinnerNow() {
-  spinnerVisible = false;
-  spinnerVisibleAt = 0;
-  toggleLoading(false);
-}
-
-function requestSpinnerShow(immediate = false) {
-  if (spinnerVisible) return;
-  if (spinnerShowTimer) return;
-  if (immediate) {
-    showSpinnerNow();
-    return;
-  }
-  spinnerShowTimer = setTimeout(() => {
-    spinnerShowTimer = null;
-    showSpinnerNow();
-  }, SPINNER_SHOW_DELAY_MS);
-}
-
-function requestSpinnerHide() {
-  if (spinnerShowTimer) {
-    clearTimeout(spinnerShowTimer);
-    spinnerShowTimer = null;
-  }
-  if (!spinnerVisible) return;
-  const elapsed = Date.now() - spinnerVisibleAt;
-  if (elapsed >= SPINNER_MIN_VISIBLE_MS) {
-    hideSpinnerNow();
-  } else {
-    if (spinnerHideTimer) return;
-    spinnerHideTimer = setTimeout(() => {
-      spinnerHideTimer = null;
-      hideSpinnerNow();
-    }, SPINNER_MIN_VISIBLE_MS - elapsed);
-  }
 }
 
 // --- Data Loading and Rendering ---
@@ -194,27 +126,6 @@ async function fetchMetadata(id) {
 }
 
 // --- Player Logic ---
-
-/**
- * Checks if a specific time is within the player's buffered ranges.
- * @param {object} p The Video.js player instance.
- * @param {number} t The time in seconds to check.
- * @returns {boolean} True if the time is buffered.
- */
-function isTimeBuffered(p, t) {
-  try {
-    const r = p.buffered();
-    const fudge = 0.25;
-    for (let i = 0; i < r.length; i += 1) {
-      const start = r.start(i) - fudge;
-      const end = r.end(i) + fudge;
-      if (t >= start && t <= end) return true;
-    }
-  } catch {
-    /* ignore */
-  }
-  return false;
-}
 
 /**
  * Proactively checks if a video source URL is valid by making a HEAD request.
@@ -309,27 +220,13 @@ function initVideoJs(meta) {
 
   // --- Player Event Handlers ---
 
-  player.on('waiting', () => {
-    requestSpinnerShow(false);
-  });
-
   const markPlayable = () => {
     if (!firstPlayableReached) {
       firstPlayableReached = true;
-      requestSpinnerHide();
     }
   };
   player.on('canplay', markPlayable);
   player.on('playing', markPlayable);
-
-  player.on('seeking', () => {
-    const t = player.currentTime();
-    if (!isTimeBuffered(player, t)) requestSpinnerShow(false);
-  });
-
-  player.on('seeked', () => {
-    if (firstPlayableReached) requestSpinnerHide();
-  });
 
   /**
    * On resume, proactively re-validate the HLS source. This handles cases where
@@ -359,16 +256,11 @@ function initVideoJs(meta) {
     }
   });
 
-  player.on('timeupdate', () => {
-    if (spinnerVisible) requestSpinnerHide();
-  });
-
   /**
    * The main error handler for the player. This is a reactive handler for
    * unexpected errors that occur during playback.
    */
   player.on('error', () => {
-    requestSpinnerHide(); // Always hide spinner on error.
     const err = typeof player.error === 'function' ? player.error() : null;
     if (!err) return;
 
@@ -395,7 +287,6 @@ function initVideoJs(meta) {
 
     playlistRetryAttempts += 1;
     console.warn(`Playlist error, retry #${playlistRetryAttempts}...`);
-    requestSpinnerShow(false);
     setTimeout(() => {
       // Reload the same source with a cache-busting param.
       const newUrl = new URL(currentHlsUrl, window.location.href);
@@ -443,7 +334,6 @@ async function initialisePlayback(id) {
 
     // 2. If the session is still processing, wait for it to be ready.
     if (!hlsUrl && token && session.status === 'processing') {
-      requestSpinnerShow(false);
       try {
         // First, try waiting with Server-Sent Events.
         const ready = await waitForReadySSE(token, { timeoutMs: 0 });
@@ -476,7 +366,6 @@ async function initialisePlayback(id) {
     currentHlsUrl = hlsUrl;
     playlistRetryAttempts = 0;
     player.src({ src: currentHlsUrl, type: 'application/x-mpegURL' });
-    requestSpinnerHide();
   } catch (err) {
     // This catch block handles fatal errors, e.g., if startSession fails.
     console.error('Failed to initialise playback', err);
@@ -496,7 +385,6 @@ async function initialisePlayback(id) {
     return;
   }
 
-  requestSpinnerShow(true);
   initCardEventListeners(listEl, state);
   if (loadMoreBtn) {
     loadMoreBtn.addEventListener('click', () => {
